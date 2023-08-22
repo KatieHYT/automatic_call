@@ -30,13 +30,19 @@ from flask import Flask, send_from_directory
 from flask_sock import Sock
 import simple_websocket
 import audioop
-
+from twilio.twiml.voice_response import Gather, VoiceResponse, Say, Start
 XML_MEDIA_STREAM = """
 <Response>
+    <Say>
+        Thanks for calling! I'm Yu-Ting Huang
+    </Say>
     <Start>
         <Stream name="Audio Stream" url="wss://{host}/audiostream" />
     </Start>
-    <Pause length="60"/>
+    <Say>
+        Is the streming going?
+    </Say>
+    <Pause length="3"/>
 </Response>
 """
 
@@ -190,10 +196,26 @@ class TwilioServer:
 
         @self.app.route("/incoming-voice", methods=["POST"])
         def incoming_voice():
-            return XML_MEDIA_STREAM.format(host=self.remote_host)
+            #return XML_MEDIA_STREAM.format(host=self.remote_host)
+            
+            #response = VoiceResponse()
+            #response.say("I'm sorry, I didn't quite catch that.")
+            #
+            #response.redirect('/audiostream')
+            #return str(response)
+
+            response = VoiceResponse()
+            start = Start()
+            start.stream(
+                name='Example Audio Stream', url=f'wss://{self.remote_host}/audiostream'
+            )
+            response.say("I'm sorry, I didn't quite catch that.")
+            response.append(start)
+            return str(response)
 
         @self.sock.route("/audiostream", websocket=True)
         def on_media_stream(ws):
+            print("999994384378439!!!!")
             session = TwilioCallSession(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
             if self.on_session is not None:
                 thread = threading.Thread(target=self.on_session, args=(session,))
@@ -237,7 +259,7 @@ class TwilioCallSession:
             if message is None:
                 logging.warn("Call media stream closed.")
                 break
-
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!?????!!!")
             data = json.loads(message)
             if data["event"] == "start":
                 logging.info("Call connected, " + str(data["start"]))
@@ -303,4 +325,4 @@ tws.on_session = run_chat
 
 
 # You can also have ChatGPT actually start the call, e.g. for automated ordering
-tws.start_call("+14156054429")
+#tws.start_call("+14156054429")
