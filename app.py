@@ -6,10 +6,10 @@ app = Flask(__name__)
 @app.route('/voice', methods=['POST'])
 def voice():
     response = VoiceResponse()
-
-    gather = Gather(input='speech', action='/handle-user-input', method='POST')
-    gather.say("Hello KT. Please say something after the beep.")
+    response.say("Hi, can I bring dog to your place?")
+    gather = Gather(input='speech', action='/handle-user-input', speechTimeout="auto", speechModel="phone_call", method="POST")
     response.append(gather)
+    response.redirect('/handle-user-input')
 
     return str(response)
 
@@ -22,6 +22,12 @@ def handle_user_input():
     if user_input:
         response.say("You said: " + user_input)
         response.say("Good night, KT!")
+    else:
+        response = VoiceResponse()
+        response.say("I'm sorry, I didn't quite catch that.")
+        gather = Gather(input='speech', action='/handle-user-input', speechTimeout="auto", speechModel="phone_call", method="POST")
+        response.append(gather)
+        response.redirect('/handle-user-input')
 
     return str(response)
 
