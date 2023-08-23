@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Start>
+    <Stream url="wss://2394-140-112-41-151.ngrok-free.app/"></Stream>
+  </Start>
+  <Pause length="3"/>
+  <Say>
+	  Hello KT
+  </Say>
+</Response>
