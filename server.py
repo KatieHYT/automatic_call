@@ -263,9 +263,9 @@ class WhisperTwilioStream:
     def __init__(self):
         self.audio_model = get_whisper_model()
         self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = 300
-        self.recognizer.pause_threshold = 2.5
-        self.recognizer.dynamic_energy_threshold = False
+        #self.recognizer.energy_threshold = 300
+        #self.recognizer.pause_threshold = 2.5
+        #self.recognizer.dynamic_energy_threshold = False
         self.stream = None
 
     def get_transcription(self) -> str:
