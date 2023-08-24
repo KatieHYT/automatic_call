@@ -53,7 +53,7 @@ class TTSClient(ABC):
         popen.wait()
         output = popen.stdout.read().decode("utf-8")
         print("==================================", output)
-        duration = float(output.split("=")[1].split("\r")[0])
+        duration = float(output.split("=")[1].split("\n")[0])
         return duration
 
 class GoogleTTS(TTSClient):
