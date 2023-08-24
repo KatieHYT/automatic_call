@@ -278,7 +278,7 @@ class WhisperTwilioStream:
                 data = io.BytesIO(audio.get_wav_data())
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
-                result = self.audio_model.transcribe(tmp_path, language="english")
+                result = self.audio_model.transcribe(tmp_path, language="english", fp16=False)
                 #print("done transcribe")
                 #print("====>    ", result)
                 # Below is a example of transcribed result:
