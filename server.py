@@ -106,7 +106,7 @@ class ChatAgent(ABC):
     def start(self):
         pass
 
-class OpenAIChat(ChatAgent):
+class CradleCaller(ChatAgent):
     def __init__(self, system_prompt: str, init_phrase: Optional[str] = None):
         self.openai_chat = OpenAIChatCompletion(system_prompt=system_prompt)
         self.init_phrase = init_phrase
@@ -207,7 +207,7 @@ class TwilioCallSession:
         self._read_ws()
 
 
-class TwilioCaller(ChatAgent):
+class PhoneRecipient(ChatAgent):
     def __init__(self, session: TwilioCallSession, tts: Optional[TTSClient] = None, thinking_phrase: str = "OK"):
         self.session = session
         self.speaker = tts or GoogleTTS()
@@ -333,11 +333,11 @@ class TwilioServer:
             session.start_session()
 
     def on_session(self, sess):
-        agent_a = OpenAIChat(
+        agent_a = CradleCaller(
                 system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
                 init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
          )
-        agent_b = TwilioCaller(sess)
+        agent_b = PhoneRecipient(sess)
         while not agent_b.session.media_stream_connected():
             time.sleep(0.1)
         self.run_conversation(agent_a, agent_b)
