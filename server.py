@@ -1,3 +1,5 @@
+from gevent import pywsgi
+from geventwebsocket.handler import WebSocketHandler
 import openai
 from pydub import AudioSegment
 import io
@@ -90,7 +92,7 @@ class OpenAIChatCompletion:
         for i, text in enumerate(reversed(transcript)):
             messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
         output = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=messages,
         )
         return output["choices"][0]["message"]["content"]
