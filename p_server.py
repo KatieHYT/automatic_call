@@ -1,3 +1,6 @@
+import openai
+from pydub import AudioSegment
+import io
 from typing import List, Optional
 from abc import ABC, abstractmethod
 import tempfile
@@ -17,6 +20,8 @@ import threading
 import time
 from gtts import gTTS
 import subprocess
+
+openai.api_key = os.environ["OPENAI_KEY"]
 
 class TTSClient(ABC):
     @abstractmethod
@@ -61,7 +66,6 @@ class GoogleTTS(TTSClient):
         tts = gTTS(text, lang="en")
         tts.save(tmp_fn)
         return tmp_fn
-
 
 class OpenAIChatCompletion:
     def __init__(self, system_prompt: str):
@@ -179,9 +183,7 @@ class TwilioCallSession:
                 if self.sst_stream.stream is not None:
                     tmp = audioop.ulaw2lin(chunk, 2)
                     self.sst_stream.stream.write(tmp)
-                    text = self.sst_stream.get_transcription()
                     
-                    print(text)
             elif data["event"] == "stop":
                 print("Call media stream ended.")
                 break
@@ -338,7 +340,7 @@ tws = TwilioServer(remote_host="2394-140-112-41-151.ngrok-free.app", port=2000, 
 
 agent_a = OpenAIChat(
         system_prompt="You are a Haiku Assistant. Answer whatever the user wants but always in a rhyming Haiku.",
-        init_phrase="This is Haiku Bot, how can I help you.",
+        init_phrase="This is Cradle.wiki, how can I help you.",
  )
 def run_chat(sess):
     agent_b = TwilioCaller(sess)
