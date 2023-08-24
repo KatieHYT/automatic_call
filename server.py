@@ -303,7 +303,6 @@ class TwilioServer:
         self.port = port
         self.static_dir = static_dir
 
-        self.on_session = None
 
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
@@ -323,10 +322,19 @@ class TwilioServer:
         def on_media_stream(ws):
             print("---> inside /    socket")
             session = TwilioCallSession(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
-            if self.on_session is not None:
-                thread = threading.Thread(target=self.on_session, args=(session,))
-                thread.start()
+            thread = threading.Thread(target=self.on_session, args=(session,))
+            thread.start()
             session.start_session()
+
+    def on_session(self, sess):
+        agent_a = OpenAIChat(
+                system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
+                init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
+         )
+        agent_b = TwilioCaller(sess)
+        while not agent_b.session.media_stream_connected():
+            time.sleep(0.1)
+        run_conversation(agent_a, agent_b)
 
     def start(self,):
         server = pywsgi.WSGIServer(
@@ -341,15 +349,5 @@ if __name__ == '__main__':
     
     tws = TwilioServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
     
-    agent_a = OpenAIChat(
-            system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
-            init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
-     )
-    def run_chat(sess):
-        agent_b = TwilioCaller(sess)
-        while not agent_b.session.media_stream_connected():
-            time.sleep(0.1)
-        run_conversation(agent_a, agent_b)
-    tws.on_session = run_chat
     tws.start()
     
