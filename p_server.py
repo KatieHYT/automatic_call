@@ -52,7 +52,6 @@ class TTSClient(ABC):
         )
         popen.wait()
         output = popen.stdout.read().decode("utf-8")
-        print("==================================", output)
         duration = float(output.split("=")[1].split("\n")[0])
         return duration
 
@@ -308,12 +307,12 @@ class TwilioServer:
 
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
-            print("????????????????")
+            print("---> inside /twiml")
             return render_template("streams.xml")
         
         @self.sock.route("/")
         def on_media_stream(ws):
-            print("!!!!")
+            print("---> inside /    socket")
             session = TwilioCallSession(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
             if self.on_session is not None:
                 thread = threading.Thread(target=self.on_session, args=(session,))
@@ -331,8 +330,7 @@ class TwilioServer:
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 
-tws = TwilioServer(remote_host="2394-140-112-41-151.ngrok-free.app", port=2000, static_dir='./')
-
+tws = TwilioServer(remote_host="2394-140-112-41-151.ngrok-free.app", port=2000, static_dir='./any_audio')
 
 agent_a = OpenAIChat(
         system_prompt="You are a Haiku Assistant. Answer whatever the user wants but always in a rhyming Haiku.",
@@ -343,15 +341,6 @@ def run_chat(sess):
     while not agent_b.session.media_stream_connected():
         time.sleep(0.1)
     run_conversation(agent_a, agent_b)
-print("pre put")
 tws.on_session = run_chat
-print("after put")
-
-
 tws.start()
 
-
-
-
-
-# Point twilio voice webhook to https://abcdef.ngrok.app/audio/incoming-voice
