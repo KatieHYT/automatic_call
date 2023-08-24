@@ -106,16 +106,6 @@ class ChatAgent(ABC):
     def start(self):
         pass
 
-def run_conversation(agent_a: ChatAgent, agent_b: ChatAgent):
-    transcript = []
-    while True:
-        text_a = agent_a.get_response(transcript)
-        transcript.append(text_a)
-        print("->", text_a, transcript)
-        text_b = agent_b.get_response(transcript)
-        transcript.append(text_b)
-        print("->", text_b, transcript)
-
 class OpenAIChat(ChatAgent):
     def __init__(self, system_prompt: str, init_phrase: Optional[str] = None):
         self.openai_chat = OpenAIChatCompletion(system_prompt=system_prompt)
@@ -289,8 +279,25 @@ class WhisperTwilioStream:
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
                 result = self.audio_model.transcribe(tmp_path, language="english")
-                print("done transcribe")
-                print("====>    ", result)
+                #print("done transcribe")
+                #print("====>    ", result)
+                # Below is a example of transcribed result:
+                #{
+                #        'text': ' Yes, of course, you can bring your doctor up to me.',
+                #        'segments': [{
+                #            'id': 0,
+                #            'seek': 0,
+                #            'start': 0.0,
+                #            'end': 4.84,
+                #            'text': ' Yes, of course, you can bring your doctor up to me.',
+                #            'tokens': [50364, 1079, 11, 295, 1164, 11, 291, 393, 1565, 428, 4631, 493, 281, 385, 13, 50606],
+                #            'temperature': 0.0,
+                #            'avg_logprob': -0.5421310873592601,
+                #            'compression_ratio': 0.9107142857142857,
+                #            'no_speech_prob': 0.1418467015028,
+                #            }],
+                #        'language': 'english'
+                #        }
         predicted_text = result["text"]
         self.stream = None
         return predicted_text
@@ -302,7 +309,6 @@ class TwilioServer:
         self.remote_host = remote_host
         self.port = port
         self.static_dir = static_dir
-
 
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
@@ -334,7 +340,18 @@ class TwilioServer:
         agent_b = TwilioCaller(sess)
         while not agent_b.session.media_stream_connected():
             time.sleep(0.1)
-        run_conversation(agent_a, agent_b)
+        self.run_conversation(agent_a, agent_b)
+
+    def run_conversation(self, agent_a: ChatAgent, agent_b: ChatAgent):
+        transcript_list = []
+        while True:
+            text_a = agent_a.get_response(transcript_list)
+            transcript_list.append(text_a)
+            print(f"[Cradle]:\t {text_a}")
+
+            text_b = agent_b.get_response(transcript_list)
+            transcript_list.append(text_b)
+            print(f"[Recipient]:\t {text_b}")
 
     def start(self,):
         server = pywsgi.WSGIServer(
@@ -348,6 +365,5 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     
     tws = TwilioServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
-    
     tws.start()
     
