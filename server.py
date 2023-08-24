@@ -280,28 +280,17 @@ class WhisperTwilioStream:
 
     def get_transcription(self) -> str:
         self.stream = _QueueStream()
-        if self.stream is None:
-            print(" you get None")
-        else:
-            print(" you get something")
-        
         with _TwilioSource(self.stream) as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp:
-                print("come inside????")
                 tmp_path = os.path.join(tmp, "mic.wav")
-                print(tmp_path)
                 audio = self.recognizer.listen(source)
-                print('audio')
                 data = io.BytesIO(audio.get_wav_data())
-                print('data')
                 audio_clip = AudioSegment.from_file(data)
-                print('clip')
                 audio_clip.export(tmp_path, format="wav")
-                print('export')
                 result = self.audio_model.transcribe(tmp_path, language="english")
                 print("done transcribe")
-                print(result)
+                print("====>    ", result)
         predicted_text = result["text"]
         self.stream = None
         return predicted_text
@@ -315,11 +304,6 @@ class TwilioServer:
         self.static_dir = static_dir
 
         self.on_session = None
-        
-        if self.on_session is None:
-            print("I'm None")
-        else:
-            print("I got it.")
 
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
@@ -358,8 +342,8 @@ if __name__ == '__main__':
     tws = TwilioServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
     
     agent_a = OpenAIChat(
-            system_prompt="You are a Haiku Assistant. Answer whatever the user wants but always in a rhyming Haiku.",
-            init_phrase="This is Cradle.wiki, how can I help you.",
+            system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
+            init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
      )
     def run_chat(sess):
         agent_b = TwilioCaller(sess)
