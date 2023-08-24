@@ -266,6 +266,11 @@ class WhisperTwilioStream:
 
     def get_transcription(self) -> str:
         self.stream = _QueueStream()
+        if self.stream is None:
+            print(" you get None")
+        else:
+            print(" you get something")
+        
         with _TwilioSource(self.stream) as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp:

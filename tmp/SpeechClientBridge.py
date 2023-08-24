@@ -11,13 +11,15 @@ class SpeechClientBridge:
         self.streaming_config = streaming_config
 
     def start(self):
-        client = speech.SpeechClient()
+        #client = speech.SpeechClient()
         stream = self.generator()
         requests = (
-            speech.StreamingRecognizeRequest(audio_content=content)
+            #speech.StreamingRecognizeRequest(audio_content=content)
+            content
             for content in stream
         )
-        responses = client.streaming_recognize(self.streaming_config, requests)
+        #responses = client.streaming_recognize(self.streaming_config, requests)
+        responses = requests
         self.process_responses_loop(responses)
 
     def terminate(self):

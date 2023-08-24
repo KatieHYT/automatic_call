@@ -1,3 +1,8 @@
+from pydub import AudioSegment
+import os
+import tempfile
+import openai
+import io
 import base64
 import json
 import threading
@@ -28,15 +33,15 @@ def return_twiml():
 
 
 def on_transcription_response(response):
-    if not response.results:
-        return
-
-    result = response.results[0]
-    if not result.alternatives:
-        return
-
-    transcription = result.alternatives[0].transcript
-    print("Transcription: " + transcription)
+    binary_data = response
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = os.path.join(tmp, "mic.wav")
+        data = io.BytesIO(binary_data)
+        audio_clip = AudioSegment.from_file(data)
+        audio_clip.export(tmp_path, format="wav")
+        result = self.audio_model.transcribe(tmp_path, language="english")
+    
+    print(result)
 
 
 @sockets.route("/")

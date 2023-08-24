@@ -1,10 +1,10 @@
-
+from flask import Flask, render_template
 from gevent import monkey
+import io
 
 monkey.patch_all()
 
 
-import logging
 import time
 import os
 import openai
@@ -18,7 +18,6 @@ from pydub import AudioSegment
 import speech_recognition as sr
 import whisper
 import threading
-import logging
 import os
 import base64
 import json
@@ -27,7 +26,7 @@ import time
 from gevent.pywsgi import WSGIServer
 from twilio.rest import Client
 from flask import Flask, send_from_directory
-from flask_sock import Sock
+from flask_sockets import Sockets
 import simple_websocket
 import audioop
 from twilio.twiml.voice_response import Gather, VoiceResponse, Say, Start
@@ -102,7 +101,7 @@ def run_conversation(agent_a: ChatAgent, agent_b: ChatAgent):
 
 @functools.cache
 def get_whisper_model(size: str = "large"):
-    logging.info(f"Loading whisper {size}")
+    print(f"Loading whisper {size}")
     return whisper.load_model(size)
 
 
@@ -116,7 +115,7 @@ class WhisperMicrophone:
 
     def get_transcription(self) -> str:
         with sr.Microphone(sample_rate=16000) as source:
-            logging.info("Waiting for mic...")
+            print("Waiting for mic...")
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_path = os.path.join(tmp, "mic.wav")
                 audio = self.recognizer.listen(source)
@@ -163,7 +162,7 @@ class WhisperTwilioStream:
     def get_transcription(self) -> str:
         self.stream = _QueueStream()
         with _TwilioSource(self.stream) as source:
-            logging.info("Waiting for twilio caller...")
+            print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_path = os.path.join(tmp, "mic.wav")
                 audio = self.recognizer.listen(source)
@@ -178,7 +177,7 @@ class WhisperTwilioStream:
 class TwilioServer:
     def __init__(self, remote_host: str, port: int, static_dir: str):
         self.app = Flask(__name__)
-        self.sock = Sock(self.app)
+        self.sock = Sockets(self.app)
         self.remote_host = remote_host
         self.port = port
         self.static_dir = static_dir
@@ -194,28 +193,15 @@ class TwilioServer:
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
-        @self.app.route("/incoming-voice", methods=["POST"])
+        @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
+            print("????????????????")
             #return XML_MEDIA_STREAM.format(host=self.remote_host)
-            
-            #response = VoiceResponse()
-            #response.say("I'm sorry, I didn't quite catch that.")
-            #
-            #response.redirect('/audiostream')
-            #return str(response)
+            return render_template("streams.xml")
 
-            response = VoiceResponse()
-            start = Start()
-            start.stream(
-                name='Example Audio Stream', url=f'wss://{self.remote_host}/audiostream'
-            )
-            response.say("I'm sorry, I didn't quite catch that.")
-            response.append(start)
-            return str(response)
-
-        @self.sock.route("/audiostream", websocket=True)
+        @self.sock.route("/")
         def on_media_stream(ws):
-            print("999994384378439!!!!")
+            print("!!!!")
             session = TwilioCallSession(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
             if self.on_session is not None:
                 thread = threading.Thread(target=self.on_session, args=(session,))
@@ -230,7 +216,7 @@ class TwilioServer:
         )
 
     def _start(self):
-        logging.info("Starting Twilio Server")
+        print("Starting Twilio Server")
         WSGIServer(("0.0.0.0", self.port), self.app).serve_forever()
 
     def start(self):
@@ -262,7 +248,7 @@ class TwilioCallSession:
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!?????!!!")
             data = json.loads(message)
             if data["event"] == "start":
-                logging.info("Call connected, " + str(data["start"]))
+                print("Call connected, " + str(data["start"]))
                 self._call = self.client.calls(data["start"]["callSid"])
             elif data["event"] == "media":
                 media = data["media"]
@@ -270,7 +256,7 @@ class TwilioCallSession:
                 if self.sst_stream.stream is not None:
                     self.sst_stream.stream.write(audioop.ulaw2lin(chunk, 2))
             elif data["event"] == "stop":
-                logging.info("Call media stream ended.")
+                print("Call media stream ended.")
                 break
 
     def get_audio_fn_and_key(self, text: str):
@@ -287,9 +273,8 @@ class TwilioCallSession:
     def start_session(self):
         self._read_ws()
 
-logging.getLogger().setLevel(logging.INFO)
 
-tws = TwilioServer(remote_host="https://2394-140-112-41-151.ngrok-free.app", port=2000, static_dir=r"./")
+tws = TwilioServer(remote_host="2394-140-112-41-151.ngrok-free.app", port=2000, static_dir=r"./")
 # Point twilio voice webhook to https://abcdef.ngrok.app/audio/incoming-voice
 tws.start()
 

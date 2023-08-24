@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 from flask_sockets import Sockets
-from twilio.twiml.voice_response import Gather, VoiceResponse, Say
+from twilio.twiml.voice_response import Gather, VoiceResponse, Say, Start
 
 import json
 import base64
@@ -20,11 +20,19 @@ def return_twiml():
     print("POST TwiML")
     return render_template('streams.xml')
 
+    #response = VoiceResponse()
+    #start = Start()
+    #start.stream(url="wss://2394-140-112-41-151.ngrok-free.app/")
+    #response.say("I'm sorry, I didn't quite catch that.")
+    #response.append(start)
+    #return str(response)
+
 @sockets.route('/')
 def echo(ws):
     log("Connection accepted")
     count = 0
     has_seen_media = False
+
     while not ws.closed:
         message = ws.receive()
         if message is None:
@@ -34,6 +42,7 @@ def echo(ws):
         data = json.loads(message)
         if data['event'] == "connected":
             log("Connected Message received", message)
+
         if data['event'] == "start":
             log("Start Message received", message)
         if data['event'] == "media":
@@ -48,9 +57,6 @@ def echo(ws):
 
     log("Connection closed. Received a total of {} messages".format(count))
 
-    response = VoiceResponse()
-    response.say("Good night, KT!")
-    return str(response)
 
 
 if __name__ == '__main__':

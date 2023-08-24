@@ -3,7 +3,7 @@
   <Start>
     <Stream url="wss://2394-140-112-41-151.ngrok-free.app/"></Stream>
   </Start>
-  <Pause length="3"/>
+  <Pause length="60"/>
   <Say>
 	  Hello KT
   </Say>
