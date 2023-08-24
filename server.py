@@ -274,7 +274,9 @@ class WhisperTwilioStream:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp:
                 tmp_path = os.path.join(tmp, "mic.wav")
-                audio = self.recognizer.listen(source)
+                # wait for thinking at most 4 seconds
+                # wait for the response at most 5 secons
+                audio = self.recognizer.listen(source, 4, 5)
                 data = io.BytesIO(audio.get_wav_data())
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
