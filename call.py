@@ -7,10 +7,12 @@ account_sid = os.environ['TWILIO_ACCOUNT_SID']
 auth_token = os.environ['TWILIO_AUTH_TOKEN']
 client = Client(account_sid, auth_token)
 
+remote_host_url = os.environ["REMOTE_HOST_URL"]
+
 call = client.calls.create(
                         to='+14156054429',
                         from_='+18777495792',
-                        url="https://2394-140-112-41-151.ngrok-free.app/twiml",
+                        url=f"https://{remote_host_url}/twiml",
                     )
 
 print(call.sid)

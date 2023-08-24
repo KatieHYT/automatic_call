@@ -23,6 +23,18 @@ import subprocess
 
 openai.api_key = os.environ["OPENAI_KEY"]
 
+XML_MEDIA_STREAM = """
+<Response>
+  <Start>
+    <Stream url="wss://{host}/"></Stream>
+  </Start>
+  <Pause length="60"/>
+  <Say>
+	  Hello KT
+  </Say>
+</Response>
+"""
+
 class TTSClient(ABC):
     @abstractmethod
     def text_to_mp3(self, text: str, output_fn: Optional[str] = None) -> str:
@@ -319,7 +331,7 @@ class TwilioServer:
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
             print("---> inside /twiml")
-            return render_template("streams.xml")
+            return XML_MEDIA_STREAM.format(host=self.remote_host)
         
         @self.sock.route("/")
         def on_media_stream(ws):
@@ -337,21 +349,21 @@ class TwilioServer:
         print("Server listening on: http://localhost:" + str(self.port))
         server.serve_forever()
 
-# Point twilio voice webhook to https://abcdef.ngrok.app/audio/incoming-voice
-from gevent import pywsgi
-from geventwebsocket.handler import WebSocketHandler
-
-tws = TwilioServer(remote_host="2394-140-112-41-151.ngrok-free.app", port=2000, static_dir='./any_audio')
-
-agent_a = OpenAIChat(
-        system_prompt="You are a Haiku Assistant. Answer whatever the user wants but always in a rhyming Haiku.",
-        init_phrase="This is Cradle.wiki, how can I help you.",
- )
-def run_chat(sess):
-    agent_b = TwilioCaller(sess)
-    while not agent_b.session.media_stream_connected():
-        time.sleep(0.1)
-    run_conversation(agent_a, agent_b)
-tws.on_session = run_chat
-tws.start()
-
+if __name__ == '__main__':
+    # force to use CPU
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    
+    tws = TwilioServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
+    
+    agent_a = OpenAIChat(
+            system_prompt="You are a Haiku Assistant. Answer whatever the user wants but always in a rhyming Haiku.",
+            init_phrase="This is Cradle.wiki, how can I help you.",
+     )
+    def run_chat(sess):
+        agent_b = TwilioCaller(sess)
+        while not agent_b.session.media_stream_connected():
+            time.sleep(0.1)
+        run_conversation(agent_a, agent_b)
+    tws.on_session = run_chat
+    tws.start()
+    
