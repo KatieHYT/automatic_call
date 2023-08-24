@@ -8,7 +8,7 @@ import base64
 import os
 from twilio.rest import Client
 from gevent.pywsgi import WSGIServer
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_sockets import Sockets
 import speech_recognition as sr
 import whisper
@@ -304,6 +304,10 @@ class TwilioServer:
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         self.from_phone = os.environ["TWILIO_PHONE_NUMBER"]
         self.client = Client(account_sid, auth_token)
+        
+        @self.app.route("/audio/<key>")
+        def audio(key):
+            return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
