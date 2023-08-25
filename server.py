@@ -81,95 +81,46 @@ class GoogleTTS(TTSClient):
         tts.save(tmp_fn)
         return tmp_fn
 
-class OpenAIChatCompletion:
-    def __init__(self, system_prompt: str):
-        self.system_prompt = system_prompt
-
-    def get_response(self, transcript: List[str]) -> str:
-        messages = [
-            {"role": "system", "content": self.system_prompt},
-        ]
-        for i, text in enumerate(reversed(transcript)):
-            messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
-        output = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=messages,
-        )
-        return output["choices"][0]["message"]["content"]
-
-
-class ChatAgent(ABC):
-    @abstractmethod
-    def get_response(self, transcript: List[str]) -> str:
-        pass
-
-    def start(self):
-        pass
-
-class TalkerCradle(ChatAgent):
-    def __init__(self, system_prompt: str, init_phrase: Optional[str] = None):
-        self.openai_chat = OpenAIChatCompletion(system_prompt=system_prompt)
+class TalkerCradle:
+    def __init__(
+            self,
+            system_prompt: str,
+            static_dir: str,
+            remote_host: str,
+            init_phrase: Optional[str] = None,
+            tts: Optional[TTSClient] = None,
+            thinking_phrase: str = "OK",
+            ):
         self.init_phrase = init_phrase
+        self.sst_stream = WhisperTwilioStream()
+        self.system_prompt = system_prompt
+        self.thinking_phrase = thinking_phrase
+        self.static_dir = static_dir
+        self.speaker = tts or GoogleTTS()
+        self.remote_host = remote_host
+
+        self._call = None
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
-            response = self.openai_chat.get_response(transcript)
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+            ]
+            for i, text in enumerate(reversed(transcript)):
+                messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
+            output = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=messages,
+            )
+            response = output["choices"][0]["message"]["content"]
         else:
             response = self.init_phrase
         return response
-
-class TalkerX:
-    def __init__(self, ws, client: Client, remote_host: str, static_dir: str, tts: Optional[TTSClient] = None, thinking_phrase: str = "OK"):
-        self.ws = ws
-        self.client = client
-        self.sst_stream = WhisperTwilioStream()
-        self.remote_host = remote_host
-        self.static_dir = static_dir
-        self._call = None
-        self.speaker = tts or GoogleTTS()
-        self.thinking_phrase = thinking_phrase
-
-    def media_stream_connected(self):
-        return self._call is not None
-
-    def _read_ws(self):
-        while True:
-            try:
-                message = self.ws.receive()
-            except simple_websocket.ws.ConnectionClosed:
-                logging.warn("Call media stream connection lost.")
-                break
-            if message is None:
-                logging.warn("Call media stream closed.")
-                break
-            data = json.loads(message)
-            if data["event"] == "start":
-                print("Call connected, " + str(data["start"]))
-                self._call = self.client.calls(data["start"]["callSid"])
-            elif data["event"] == "media":
-                media = data["media"]
-                chunk = base64.b64decode(media["payload"])
-                if self.sst_stream.stream is not None:
-                    tmp = audioop.ulaw2lin(chunk, 2)
-                    self.sst_stream.stream.write(tmp)
-                    
-            elif data["event"] == "stop":
-                print("Call media stream ended.")
-                break
 
     def get_audio_fn_and_key(self, text: str):
         key = str(abs(hash(text)))
         path = os.path.join(self.static_dir, key + ".mp3")
         return key, path
-
-    def play(self, audio_key: str, duration: float):
-        self._call.update(
-            twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
-        )
-        time.sleep(duration + 0.2)
-
-    def start_session(self):
-        self._read_ws()
 
     def _say(self, text: str):
         key, tts_fn = self.get_audio_fn_and_key(text)
@@ -177,12 +128,11 @@ class TalkerX:
         duration = self.speaker.get_duration(tts_fn)
         self.play(key, duration)
 
-    def get_response(self, transcript: List[str]) -> str:
-        if len(transcript) > 0:
-            self._say(transcript[-1])
-        resp = self.sst_stream.get_transcription()
-        self._say(self.thinking_phrase)
-        return resp
+    def play(self, audio_key: str, duration: float):
+        self._call.update(
+            twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
+        )
+        time.sleep(duration + 0.2)
 
 class _TwilioSource(sr.AudioSource):
     def __init__(self, stream):
@@ -234,7 +184,7 @@ class WhisperTwilioStream:
                 tmp_path = os.path.join(tmp, "mic.wav")
                 # wait for thinking at most 4 seconds
                 # wait for the response at most 5 secons
-                audio = self.recognizer.listen(source, 4, 5)
+                audio = self.recognizer.listen(source)
                 data = io.BytesIO(audio.get_wav_data())
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
@@ -262,7 +212,7 @@ class WhisperTwilioStream:
         self.stream = None
         return predicted_text
 
-class TwilioServer:
+class CradleServer:
     def __init__(self, remote_host: str, port: int, static_dir: str):
         self.app = Flask(__name__)
         self.sock = Sockets(self.app)
@@ -273,16 +223,14 @@ class TwilioServer:
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         self.from_phone = os.environ["TWILIO_PHONE_NUMBER"]
-        self.client = Client(account_sid, auth_token)
+        self.twilio_client = Client(account_sid, auth_token)
         
         self.agent_a = TalkerCradle(
                 system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
                 init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
+                remote_host=self.remote_host,
+                static_dir=self.static_dir,
          )
-
-        @self.app.route("/audio/<key>")
-        def audio(key):
-            return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
@@ -292,13 +240,41 @@ class TwilioServer:
         @self.sock.route("/")
         def on_media_stream(ws):
             print("---> inside /    socket")
-            talker_x = TalkerX(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
-            thread = threading.Thread(target=self.on_session, args=(talker_x,))
+            thread = threading.Thread(target=self.on_session, args=())
             thread.start()
-            talker_x.start_session()
+            self._read_ws(ws)
 
-    def on_session(self, talker_x):
-        while not talker_x.media_stream_connected():
+        @self.app.route("/audio/<key>")
+        def audio(key):
+            return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
+
+    def _read_ws(self, ws):
+        while True:
+            try:
+                message = ws.receive()
+            except simple_websocket.ws.ConnectionClosed:
+                logging.warn("Call media stream connection lost.")
+                break
+            if message is None:
+                logging.warn("Call media stream closed.")
+                break
+            data = json.loads(message)
+            if data["event"] == "start":
+                print("Call connected, " + str(data["start"]))
+                self.agent_a._call = self.twilio_client.calls(data["start"]["callSid"])
+            elif data["event"] == "media":
+                media = data["media"]
+                chunk = base64.b64decode(media["payload"])
+                if self.agent_a.sst_stream.stream is not None:
+                    tmp = audioop.ulaw2lin(chunk, 2)
+                    self.agent_a.sst_stream.stream.write(tmp)
+                    
+            elif data["event"] == "stop":
+                print("Call media stream ended.")
+                break
+
+    def on_session(self,):
+        while not (self.agent_a._call is not None):
             time.sleep(0.1)
 
         transcript_list = []
@@ -306,10 +282,14 @@ class TwilioServer:
             text_a = self.agent_a.get_response(transcript_list)
             transcript_list.append(text_a)
             print(f"[Cradle]:\t {text_a}")
+            self.agent_a._say(transcript_list[-1])
 
-            text_b = talker_x.get_response(transcript_list)
+            text_b = self.agent_a.sst_stream.get_transcription()
             transcript_list.append(text_b)
             print(f"[Recipient]:\t {text_b}")
+
+            self.agent_a._say(self.agent_a.thinking_phrase)
+
 
     def start(self,):
         server = pywsgi.WSGIServer(
@@ -322,6 +302,6 @@ if __name__ == '__main__':
     # force to use CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     
-    tws = TwilioServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
+    tws = CradleServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
     tws.start()
     
