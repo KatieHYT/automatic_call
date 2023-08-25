@@ -92,7 +92,14 @@ class TalkerCradle:
             thinking_phrase: str = "OK",
             ):
         self.init_phrase = init_phrase
-        self.sst_stream = WhisperTwilioStream()
+
+        self.audio_model = get_whisper_model()
+        self.recognizer = sr.Recognizer()
+        #self.recognizer.energy_threshold = 300
+        #self.recognizer.pause_threshold = 2.5
+        #self.recognizer.dynamic_energy_threshold = False
+        self.stream = None
+
         self.system_prompt = system_prompt
         self.thinking_phrase = thinking_phrase
         self.static_dir = static_dir
@@ -122,61 +129,23 @@ class TalkerCradle:
         path = os.path.join(self.static_dir, key + ".mp3")
         return key, path
 
-    def _say(self, text: str):
+    def say(self, transcript):
+        text = self.get_response(transcript)
+        print(f"[Cradle]:\t {text}")
         key, tts_fn = self.get_audio_fn_and_key(text)
         self.speaker.text_to_mp3(text, output_fn=tts_fn)
         duration = self.speaker.get_duration(tts_fn)
-        self.play(key, duration)
+        self._play(key, duration)
 
-    def play(self, audio_key: str, duration: float):
+        return text
+
+    def _play(self, audio_key: str, duration: float):
         self._call.update(
             twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
         )
         time.sleep(duration + 0.2)
 
-class _TwilioSource(sr.AudioSource):
-    def __init__(self, stream):
-        self.stream = stream
-        self.CHUNK = 1024
-        self.SAMPLE_RATE = 8000
-        self.SAMPLE_WIDTH = 2
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
-
-@functools.cache
-def get_whisper_model(size: str = "large"):
-    print(f"Loading whisper {size}...")
-    _m = whisper.load_model(size)
-    print("Done.")
-    return _m
-
-
-class _QueueStream:
-    def __init__(self):
-        self.q = queue.Queue(maxsize=-1)
-
-    def read(self, chunk: int) -> bytes:
-        return self.q.get()
-
-    def write(self, chunk: bytes):
-        self.q.put(chunk)
-
-
-class WhisperTwilioStream:
-    def __init__(self):
-        self.audio_model = get_whisper_model()
-        self.recognizer = sr.Recognizer()
-        #self.recognizer.energy_threshold = 300
-        #self.recognizer.pause_threshold = 2.5
-        #self.recognizer.dynamic_energy_threshold = False
-        self.stream = None
-
-    def get_transcription(self) -> str:
+    def listen_and_transcribe(self) -> str:
         self.stream = _QueueStream()
         with _TwilioSource(self.stream) as source:
             print("Waiting for twilio caller...")
@@ -209,8 +178,41 @@ class WhisperTwilioStream:
                 #        'language': 'english'
                 #        }
         predicted_text = result["text"]
+        print(f"[Recipient]:\t {predicted_text}")
         self.stream = None
         return predicted_text
+
+class _TwilioSource(sr.AudioSource):
+    def __init__(self, stream):
+        self.stream = stream
+        self.CHUNK = 1024
+        self.SAMPLE_RATE = 8000
+        self.SAMPLE_WIDTH = 2
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+
+@functools.cache
+def get_whisper_model(size: str = "large"):
+    print(f"Loading whisper {size}...")
+    _m = whisper.load_model(size)
+    print("Done.")
+    return _m
+
+
+class _QueueStream:
+    def __init__(self):
+        self.q = queue.Queue(maxsize=-1)
+
+    def read(self, chunk: int) -> bytes:
+        return self.q.get()
+
+    def write(self, chunk: bytes):
+        self.q.put(chunk)
 
 class CradleServer:
     def __init__(self, remote_host: str, port: int, static_dir: str):
@@ -265,9 +267,9 @@ class CradleServer:
             elif data["event"] == "media":
                 media = data["media"]
                 chunk = base64.b64decode(media["payload"])
-                if self.agent_a.sst_stream.stream is not None:
+                if self.agent_a.stream is not None:
                     tmp = audioop.ulaw2lin(chunk, 2)
-                    self.agent_a.sst_stream.stream.write(tmp)
+                    self.agent_a.stream.write(tmp)
                     
             elif data["event"] == "stop":
                 print("Call media stream ended.")
@@ -279,17 +281,12 @@ class CradleServer:
 
         transcript_list = []
         while True:
-            text_a = self.agent_a.get_response(transcript_list)
+            text_a = self.agent_a.say(transcript_list)
             transcript_list.append(text_a)
-            print(f"[Cradle]:\t {text_a}")
-            self.agent_a._say(transcript_list[-1])
 
-            text_b = self.agent_a.sst_stream.get_transcription()
+            text_b = self.agent_a.listen_and_transcribe()
             transcript_list.append(text_b)
-            print(f"[Recipient]:\t {text_b}")
-
-            self.agent_a._say(self.agent_a.thinking_phrase)
-
+            self.agent_a.say(self.agent_a.thinking_phrase)
 
     def start(self,):
         server = pywsgi.WSGIServer(
