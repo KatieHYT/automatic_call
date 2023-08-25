@@ -90,10 +90,14 @@ class TalkerCradle:
             init_phrase: Optional[str] = None,
             tts: Optional[TTSClient] = None,
             thinking_phrase: str = "OK",
+            whisper_model_size: str = "large"
             ):
         self.init_phrase = init_phrase
 
-        self.audio_model = get_whisper_model()
+        print(f"Loading whisper {whisper_model_size}...")
+        self.audio2text_model = whisper.load_model(whisper_model_size)
+        print("Done.")
+
         self.recognizer = sr.Recognizer()
         #self.recognizer.energy_threshold = 300
         #self.recognizer.pause_threshold = 2.5
@@ -157,7 +161,7 @@ class TalkerCradle:
                 data = io.BytesIO(audio.get_wav_data())
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
-                result = self.audio_model.transcribe(tmp_path, language="english", fp16=False)
+                result = self.audio2text_model.transcribe(tmp_path, language="english", fp16=False)
                 #print("done transcribe")
                 #print("====>    ", result)
                 # Below is a example of transcribed result:
@@ -194,14 +198,6 @@ class _TwilioSource(sr.AudioSource):
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
-
-
-@functools.cache
-def get_whisper_model(size: str = "large"):
-    print(f"Loading whisper {size}...")
-    _m = whisper.load_model(size)
-    print("Done.")
-    return _m
 
 
 class _QueueStream:
