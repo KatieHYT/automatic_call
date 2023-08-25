@@ -90,7 +90,7 @@ class TalkerCradle:
             init_phrase: Optional[str] = None,
             tts: Optional[TTSClient] = None,
             thinking_phrase: str = "OK",
-            whisper_model_size: str = "large"
+            whisper_model_size: str = "tiny"
             ):
         self.init_phrase = init_phrase
 
@@ -162,28 +162,10 @@ class TalkerCradle:
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
                 result = self.audio2text_model.transcribe(tmp_path, language="english", fp16=False)
-                #print("done transcribe")
-                #print("====>    ", result)
-                # Below is a example of transcribed result:
-                #{
-                #        'text': ' Yes, of course, you can bring your doctor up to me.',
-                #        'segments': [{
-                #            'id': 0,
-                #            'seek': 0,
-                #            'start': 0.0,
-                #            'end': 4.84,
-                #            'text': ' Yes, of course, you can bring your doctor up to me.',
-                #            'tokens': [50364, 1079, 11, 295, 1164, 11, 291, 393, 1565, 428, 4631, 493, 281, 385, 13, 50606],
-                #            'temperature': 0.0,
-                #            'avg_logprob': -0.5421310873592601,
-                #            'compression_ratio': 0.9107142857142857,
-                #            'no_speech_prob': 0.1418467015028,
-                #            }],
-                #        'language': 'english'
-                #        }
         predicted_text = result["text"]
         print(f"[Recipient]:\t {predicted_text}")
         self.stream = None
+
         return predicted_text
 
 class _TwilioSource(sr.AudioSource):
@@ -282,8 +264,9 @@ class CradleServer:
 
             text_b = self.agent_a.listen_and_transcribe()
             transcript_list.append(text_b)
-            self.agent_a.say(self.agent_a.thinking_phrase)
 
+            self.agent_a.say(self.agent_a.thinking_phrase)
+            
     def start(self,):
         server = pywsgi.WSGIServer(
             ("", self.port), self.app, handler_class=WebSocketHandler
