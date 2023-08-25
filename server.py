@@ -106,7 +106,7 @@ class ChatAgent(ABC):
     def start(self):
         pass
 
-class CradleCaller(ChatAgent):
+class TalkerCradle(ChatAgent):
     def __init__(self, system_prompt: str, init_phrase: Optional[str] = None):
         self.openai_chat = OpenAIChatCompletion(system_prompt=system_prompt)
         self.init_phrase = init_phrase
@@ -118,14 +118,16 @@ class CradleCaller(ChatAgent):
             response = self.init_phrase
         return response
 
-class TwilioCallSession:
-    def __init__(self, ws, client: Client, remote_host: str, static_dir: str):
+class TalkerX:
+    def __init__(self, ws, client: Client, remote_host: str, static_dir: str, tts: Optional[TTSClient] = None, thinking_phrase: str = "OK"):
         self.ws = ws
         self.client = client
         self.sst_stream = WhisperTwilioStream()
         self.remote_host = remote_host
         self.static_dir = static_dir
         self._call = None
+        self.speaker = tts or GoogleTTS()
+        self.thinking_phrase = thinking_phrase
 
     def media_stream_connected(self):
         return self._call is not None
@@ -169,23 +171,16 @@ class TwilioCallSession:
     def start_session(self):
         self._read_ws()
 
-
-class PhoneRecipient(ChatAgent):
-    def __init__(self, session: TwilioCallSession, tts: Optional[TTSClient] = None, thinking_phrase: str = "OK"):
-        self.session = session
-        self.speaker = tts or GoogleTTS()
-        self.thinking_phrase = thinking_phrase
-
     def _say(self, text: str):
-        key, tts_fn = self.session.get_audio_fn_and_key(text)
+        key, tts_fn = self.get_audio_fn_and_key(text)
         self.speaker.text_to_mp3(text, output_fn=tts_fn)
         duration = self.speaker.get_duration(tts_fn)
-        self.session.play(key, duration)
+        self.play(key, duration)
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
             self._say(transcript[-1])
-        resp = self.session.sst_stream.get_transcription()
+        resp = self.sst_stream.get_transcription()
         self._say(self.thinking_phrase)
         return resp
 
@@ -280,6 +275,11 @@ class TwilioServer:
         self.from_phone = os.environ["TWILIO_PHONE_NUMBER"]
         self.client = Client(account_sid, auth_token)
         
+        self.agent_a = TalkerCradle(
+                system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
+                init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
+         )
+
         @self.app.route("/audio/<key>")
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
@@ -292,29 +292,22 @@ class TwilioServer:
         @self.sock.route("/")
         def on_media_stream(ws):
             print("---> inside /    socket")
-            session = TwilioCallSession(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
-            thread = threading.Thread(target=self.on_session, args=(session,))
+            talker_x = TalkerX(ws, self.client, remote_host=self.remote_host, static_dir=self.static_dir)
+            thread = threading.Thread(target=self.on_session, args=(talker_x,))
             thread.start()
-            session.start_session()
+            talker_x.start_session()
 
-    def on_session(self, sess):
-        agent_a = CradleCaller(
-                system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
-                init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
-         )
-        agent_b = PhoneRecipient(sess)
-        while not agent_b.session.media_stream_connected():
+    def on_session(self, talker_x):
+        while not talker_x.media_stream_connected():
             time.sleep(0.1)
-        self.run_conversation(agent_a, agent_b)
 
-    def run_conversation(self, agent_a: ChatAgent, agent_b: ChatAgent):
         transcript_list = []
         while True:
-            text_a = agent_a.get_response(transcript_list)
+            text_a = self.agent_a.get_response(transcript_list)
             transcript_list.append(text_a)
             print(f"[Cradle]:\t {text_a}")
 
-            text_b = agent_b.get_response(transcript_list)
+            text_b = talker_x.get_response(transcript_list)
             transcript_list.append(text_b)
             print(f"[Recipient]:\t {text_b}")
 
