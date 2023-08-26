@@ -15,8 +15,10 @@ import threading
 import time
 import tempfile
 import speech_recognition as sr
+import sys
 
-from tools import TalkerX, TalkerCradle
+sys.path.append("..")
+from src.tools import TalkerX, TalkerCradle
 
 class FlaskCallCenter:
     def __init__(self, remote_host: str, port: int, static_dir: str):
@@ -123,7 +125,10 @@ if __name__ == '__main__':
     # force to use CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     openai.api_key = os.environ["OPENAI_KEY"]
+    static_dir = "./static_dir"
+    if not os.path.exists(static_dir):
+        os.makedirs(static_dir)
     
-    tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
+    tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir=static_dir)
     tws.start()
     
