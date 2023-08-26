@@ -130,14 +130,15 @@ class TalkerCradle:
     def say(self, transcript):
         text = self.get_response(transcript)
         print(f"[Cradle]:\t {text}")
-        key, tts_fn = self.get_audio_fn_and_key(text)
-        self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
-        duration = self.text2audio_sys.get_duration(tts_fn)
-        self._play(key, duration)
+
+        self.play_text_audio(text)
 
         return text
 
-    def _play(self, audio_key: str, duration: float):
+    def play_text_audio(self, text: str):
+        audio_key, tts_fn = self.get_audio_fn_and_key(text)
+        self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
+        duration = self.text2audio_sys.get_duration(tts_fn)
         self._call.update(
             twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
         )
@@ -158,6 +159,8 @@ class TalkerCradle:
                 result = self.audio2text_sys.transcribe(tmp_path, language="english", fp16=False)
         predicted_text = result["text"]
         print(f"[Recipient]:\t {predicted_text}")
+        self.play_text_audio(self.thinking_phrase)
+
         self.stream = None
 
         return predicted_text
@@ -258,8 +261,6 @@ class CradleServer:
 
             text_b = self.agent_a.listen_and_transcribe()
             transcript_list.append(text_b)
-
-            self.agent_a.say(self.agent_a.thinking_phrase)
             
     def start(self,):
         server = pywsgi.WSGIServer(
