@@ -120,15 +120,27 @@ class TalkerCradle:
         return tmp_path
 
     def listen_and_transcribe(self, talker_x) -> str:
+        # listen what talker_x talking
         with talker_x as source:
-            print("Waiting for twilio caller...")
+            print("Listening to talker_x...")
             with tempfile.TemporaryDirectory() as tmp_dir:
+                print("\t Audio to disk...")
+                start_time = time.time()
                 tmp_path = self.record_audio_to_disk(source, tmp_dir)
-                result = self.audio2text_sys.transcribe(tmp_path, language="english", fp16=False)
+                end_time = time.time()
+                time_taken = end_time - start_time
+                print("\t\t Time taken:", time_taken, "seconds")
 
-        predicted_text = result["text"]
-        print(f"[Recipient]:\t {predicted_text}")
-        self.play_text_audio(self.thinking_phrase)
+                self.play_text_audio(self.thinking_phrase)
+                
+                print("\t Speech to text...")
+                start_time = time.time()
+                result = self.audio2text_sys.transcribe(tmp_path, language="english", fp16=False)
+                end_time = time.time()
+                time_taken = end_time - start_time
+                print("\t\t Time taken:", time_taken, "seconds")
+                predicted_text = result["text"]
+                print(f"[Recipient]:\t {predicted_text}")
 
         return predicted_text
 
