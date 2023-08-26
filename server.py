@@ -189,7 +189,7 @@ class _QueueStream:
     def write(self, chunk: bytes):
         self.q.put(chunk)
 
-class CradleServer:
+class CradleCallCenter:
     def __init__(self, remote_host: str, port: int, static_dir: str):
         self.app = Flask(__name__)
         self.sock = Sockets(self.app)
