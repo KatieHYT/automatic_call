@@ -160,7 +160,8 @@ class TalkerCradle:
 
     def listen_and_transcribe(self) -> str:
         self.stream = _QueueStream()
-        with _TwilioSource(self.stream) as source:
+        talker_x = TalkerX(self.stream)
+        with talker_x as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = self.record_audio_to_disk(source, tmp_dir)
@@ -174,7 +175,7 @@ class TalkerCradle:
 
         return predicted_text
 
-class _TwilioSource(sr.AudioSource):
+class TalkerX(sr.AudioSource):
     def __init__(self, stream):
         self.stream = stream
         self.CHUNK = 1024
@@ -186,7 +187,6 @@ class _TwilioSource(sr.AudioSource):
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
-
 
 class _QueueStream:
     def __init__(self):
