@@ -177,15 +177,20 @@ class TalkerCradle:
 class TalkerX(sr.AudioSource):
     def __init__(self, stream):
         self.stream = stream 
-        self.CHUNK = 1024
-        self.SAMPLE_RATE = 8000
-        self.SAMPLE_WIDTH = 2
+        self.CHUNK = 1024 # number of frames stored in each buffer
+        self.SAMPLE_RATE = 8000 # sampling rate in Hertz
+        self.SAMPLE_WIDTH = 2 
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
+
+    def write_audio_data_to_stream(self, chunk):
+        # μ-law encoded audio data to linear encoding, and then writes the converted data to the audio stream.
+        tmp = audioop.ulaw2lin(chunk, 2)
+        self.stream.write(tmp)
 
 class _QueueStream:
     def __init__(self):
@@ -252,8 +257,7 @@ class CradleCallCenter:
                 media = data["media"]
                 chunk = base64.b64decode(media["payload"])
                 if self.talker_x.stream is not None:
-                    tmp = audioop.ulaw2lin(chunk, 2)
-                    self.talker_x.stream.write(tmp)
+                    self.talker_x.write_audio_data_to_stream(chunk)
                     
             elif data["event"] == "stop":
                 print("Call media stream ended.")
