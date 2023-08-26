@@ -44,28 +44,6 @@ class GoogleTTS:
         tts.save(tmp_fn)
         return tmp_fn
 
-    def play_text(self, text: str) -> str:
-        tmp_mp3 = self.text_to_mp3(text)
-        tmp_wav = tmp_mp3.replace(".mp3", ".wav")
-        subprocess.call(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", tmp_mp3, tmp_wav])
-
-        wf = wave.open(tmp_wav, "rb")
-        audio = pyaudio.PyAudio()
-        stream = audio.open(
-            format=audio.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True,
-        )
-
-        data = wf.readframes(1024)
-        while data != b"":
-            stream.write(data)
-            data = wf.readframes(1024)
-
-        stream.close()
-        audio.terminate()
-
     def get_duration(self, audio_fn: str) -> float:
         popen = subprocess.Popen(
             ["ffprobe", "-hide_banner", "-loglevel", "error", "-show_entries", "format=duration", "-i", audio_fn],
@@ -159,7 +137,7 @@ class TalkerCradle:
         return tmp_path
 
     def listen_and_transcribe(self, talker_x) -> str:
-        talker_x.stream = _QueueStream()
+        talker_x.turn_on_stream()
         with talker_x as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -175,8 +153,8 @@ class TalkerCradle:
         return predicted_text
 
 class TalkerX(sr.AudioSource):
-    def __init__(self, stream):
-        self.stream = stream 
+    def __init__(self, ):
+        self.stream = None
         self.CHUNK = 1024 # number of frames stored in each buffer
         self.SAMPLE_RATE = 8000 # sampling rate in Hertz
         self.SAMPLE_WIDTH = 2 
@@ -191,6 +169,10 @@ class TalkerX(sr.AudioSource):
         # μ-law encoded audio data to linear encoding, and then writes the converted data to the audio stream.
         tmp = audioop.ulaw2lin(chunk, 2)
         self.stream.write(tmp)
+
+    def turn_on_stream(self, ):
+        self.stream = _QueueStream()
+        
 
 class _QueueStream:
     def __init__(self):
@@ -230,7 +212,7 @@ class CradleCallCenter:
         @self.sock.route("/")
         def on_media_stream(ws):
             print("---> inside /    socket")
-            self.talker_x = TalkerX(stream = None)
+            self.talker_x = TalkerX()
             thread = threading.Thread(target=self.on_session, args=())
             thread.start()
             self._read_ws(ws)
@@ -250,9 +232,11 @@ class CradleCallCenter:
                 logging.warn("Call media stream closed.")
                 break
             data = json.loads(message)
+
             if data["event"] == "start":
                 print("Call connected, " + str(data["start"]))
                 self.agent_a._call = self.twilio_client.calls(data["start"]["callSid"])
+
             elif data["event"] == "media":
                 media = data["media"]
                 chunk = base64.b64decode(media["payload"])
