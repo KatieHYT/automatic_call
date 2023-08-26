@@ -42,7 +42,6 @@ class TalkerCradle:
             self,
             system_prompt: str,
             static_dir: str,
-            remote_host: str,
             init_phrase: Optional[str] = None,
             thinking_phrase: str = "OK",
             whisper_model_size: str = "tiny"
@@ -65,10 +64,7 @@ class TalkerCradle:
         self.text2audio_sys = GoogleTTS() 
 
         self.static_dir = static_dir
-        self.remote_host = remote_host
 
-        self._call = None
-        self.talker_x_stream = None
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
@@ -91,22 +87,30 @@ class TalkerCradle:
         path = os.path.join(self.static_dir, key + ".mp3")
         return key, path
 
-    def say(self, transcript):
+    def think_what_to_say(self, transcript):
+        print("\t ChatGPT processing...")
+        start_time = time.time()
         text = self.get_response(transcript)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
         print(f"[Cradle]:\t {text}")
 
-        self.play_text_audio(text)
+        print("\t Text to audio...")
+        start_time = time.time()
+        audio_key, duration = self.text_to_audiofile(text)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
 
-        return text
+        return text, audio_key, duration
 
-    def play_text_audio(self, text: str):
+    def text_to_audiofile(self, text: str):
         audio_key, tts_fn = self.get_audio_fn_and_key(text)
         self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
         duration = self.text2audio_sys.get_duration(tts_fn)
-        self._call.update(
-            twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
-        )
-        time.sleep(duration + 0.2)
+        
+        return audio_key, duration
 
     def record_audio_to_disk(self, source, tmp_dir):
         tmp_path = os.path.join(tmp_dir, "mic.wav")
@@ -131,7 +135,6 @@ class TalkerCradle:
                 time_taken = end_time - start_time
                 print("\t\t Time taken:", time_taken, "seconds")
 
-                self.play_text_audio(self.thinking_phrase)
                 
                 print("\t Speech to text...")
                 start_time = time.time()
@@ -179,9 +182,11 @@ class CradleCallCenter:
         self.agent_a = TalkerCradle(
                 system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
                 init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
-                remote_host=self.remote_host,
                 static_dir=self.static_dir,
+
          )
+        
+        self._call = None
 
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
@@ -200,6 +205,12 @@ class CradleCallCenter:
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
+    def reply(self, audio_key, duration):
+        self._call.update(
+            twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
+        )
+        time.sleep(duration + 0.2)
+
     def _read_ws(self, ws):
         while True:
             try:
@@ -214,7 +225,7 @@ class CradleCallCenter:
 
             if data["event"] == "start":
                 print("Call connected, " + str(data["start"]))
-                self.agent_a._call = self.twilio_client.calls(data["start"]["callSid"])
+                self._call = self.twilio_client.calls(data["start"]["callSid"])
 
             elif data["event"] == "media":
                 media = data["media"]
@@ -227,17 +238,21 @@ class CradleCallCenter:
                 break
 
     def on_session(self,):
-        while not (self.agent_a._call is not None):
+        while self._call is None:
             time.sleep(0.1)
 
         transcript_list = []
         while True:
-            text_a = self.agent_a.say(transcript_list)
+            text_a, audio_key, duration = self.agent_a.think_what_to_say(transcript_list)
+            self.reply(audio_key, duration)
             transcript_list.append(text_a)
 
             text_b = self.agent_a.listen_and_transcribe(self.talker_x)
             transcript_list.append(text_b)
-            
+          
+            audio_key, duration = self.agent_a.text_to_audiofile(self.agent_a.thinking_phrase)
+            self.reply(audio_key, duration)
+
     def start(self,):
         server = pywsgi.WSGIServer(
             ("", self.port), self.app, handler_class=WebSocketHandler
