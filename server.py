@@ -107,7 +107,7 @@ class TalkerCradle:
         self.remote_host = remote_host
 
         self._call = None
-        self.stream = None
+        self.talker_x_stream = None
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
@@ -158,9 +158,8 @@ class TalkerCradle:
 
         return tmp_path
 
-    def listen_and_transcribe(self) -> str:
-        self.stream = _QueueStream()
-        talker_x = TalkerX(self.stream)
+    def listen_and_transcribe(self, talker_x) -> str:
+        talker_x.stream = _QueueStream()
         with talker_x as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -171,13 +170,13 @@ class TalkerCradle:
         print(f"[Recipient]:\t {predicted_text}")
         self.play_text_audio(self.thinking_phrase)
 
-        self.stream = None
+        talker_x.stream = None
 
         return predicted_text
 
 class TalkerX(sr.AudioSource):
     def __init__(self, stream):
-        self.stream = stream
+        self.stream = stream 
         self.CHUNK = 1024
         self.SAMPLE_RATE = 8000
         self.SAMPLE_WIDTH = 2
@@ -226,6 +225,7 @@ class CradleCallCenter:
         @self.sock.route("/")
         def on_media_stream(ws):
             print("---> inside /    socket")
+            self.talker_x = TalkerX(stream = None)
             thread = threading.Thread(target=self.on_session, args=())
             thread.start()
             self._read_ws(ws)
@@ -251,9 +251,9 @@ class CradleCallCenter:
             elif data["event"] == "media":
                 media = data["media"]
                 chunk = base64.b64decode(media["payload"])
-                if self.agent_a.stream is not None:
+                if self.talker_x.stream is not None:
                     tmp = audioop.ulaw2lin(chunk, 2)
-                    self.agent_a.stream.write(tmp)
+                    self.talker_x.stream.write(tmp)
                     
             elif data["event"] == "stop":
                 print("Call media stream ended.")
@@ -268,7 +268,7 @@ class CradleCallCenter:
             text_a = self.agent_a.say(transcript_list)
             transcript_list.append(text_a)
 
-            text_b = self.agent_a.listen_and_transcribe()
+            text_b = self.agent_a.listen_and_transcribe(self.talker_x)
             transcript_list.append(text_b)
             
     def start(self,):
