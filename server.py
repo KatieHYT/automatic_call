@@ -64,6 +64,7 @@ class TalkerCradle:
         self.text2audio_sys = GoogleTTS() 
 
         self.static_dir = static_dir
+        self.phone_operator = None
 
 
     def get_response(self, transcript: List[str]) -> str:
@@ -178,15 +179,7 @@ class CradleCallCenter:
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         self.from_phone = os.environ["TWILIO_PHONE_NUMBER"]
         self.twilio_client = Client(account_sid, auth_token)
-        
-        self.agent_a = TalkerCradle(
-                system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
-                init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
-                static_dir=self.static_dir,
 
-         )
-        
-        self._call = None
 
         @self.app.route("/twiml", methods=["POST"])
         def incoming_voice():
@@ -196,62 +189,66 @@ class CradleCallCenter:
         @self.sock.route("/")
         def on_media_stream(ws):
             print("---> inside /    socket")
-            self.talker_x = TalkerX()
-            thread = threading.Thread(target=self.on_session, args=())
+            agent_a = TalkerCradle(
+                    system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
+                    init_phrase="Hello, this is Cradle.wiki. Can I bring my dog to your place?",
+                    static_dir=self.static_dir,
+             )
+            talker_x = TalkerX()
+
+            thread = threading.Thread(target=self.conversation, args=(agent_a, talker_x))
             thread.start()
-            self._read_ws(ws)
+
+            while True:
+                try:
+                    message = ws.receive()
+                except simple_websocket.ws.ConnectionClosed:
+                    logging.warn("Call media stream connection lost.")
+                    break
+                if message is None:
+                    logging.warn("Call media stream closed.")
+                    break
+                data = json.loads(message)
+
+                if data["event"] == "start":
+                    print("Call connected, " + str(data["start"]))
+                    agent_a.phone_operator = self.twilio_client.calls(data["start"]["callSid"])
+
+                elif data["event"] == "media":
+                    media = data["media"]
+                    chunk = base64.b64decode(media["payload"])
+                    if talker_x.stream is not None:
+                        talker_x.write_audio_data_to_stream(chunk)
+                        
+                elif data["event"] == "stop":
+                    print("Call media stream ended.")
+                    break
 
         @self.app.route("/audio/<key>")
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
 
-    def reply(self, audio_key, duration):
-        self._call.update(
+    def reply(self, phone_operator, audio_key, duration):
+        phone_operator.update(
             twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
         )
         time.sleep(duration + 0.2)
 
-    def _read_ws(self, ws):
-        while True:
-            try:
-                message = ws.receive()
-            except simple_websocket.ws.ConnectionClosed:
-                logging.warn("Call media stream connection lost.")
-                break
-            if message is None:
-                logging.warn("Call media stream closed.")
-                break
-            data = json.loads(message)
-
-            if data["event"] == "start":
-                print("Call connected, " + str(data["start"]))
-                self._call = self.twilio_client.calls(data["start"]["callSid"])
-
-            elif data["event"] == "media":
-                media = data["media"]
-                chunk = base64.b64decode(media["payload"])
-                if self.talker_x.stream is not None:
-                    self.talker_x.write_audio_data_to_stream(chunk)
-                    
-            elif data["event"] == "stop":
-                print("Call media stream ended.")
-                break
-
-    def on_session(self,):
-        while self._call is None:
+    def conversation(self, agent_a, talker_x):
+        while agent_a.phone_operator is None:
             time.sleep(0.1)
 
         transcript_list = []
         while True:
-            text_a, audio_key, duration = self.agent_a.think_what_to_say(transcript_list)
-            self.reply(audio_key, duration)
+            text_a, audio_key, duration = agent_a.think_what_to_say(transcript_list)
+            self.reply(agent_a.phone_operator, audio_key, duration)
             transcript_list.append(text_a)
 
-            text_b = self.agent_a.listen_and_transcribe(self.talker_x)
+            text_b = agent_a.listen_and_transcribe(talker_x)
             transcript_list.append(text_b)
           
-            audio_key, duration = self.agent_a.text_to_audiofile(self.agent_a.thinking_phrase)
-            self.reply(audio_key, duration)
+            audio_key, duration = agent_a.text_to_audiofile(agent_a.thinking_phrase)
+            self.reply(agent_a.phone_operator, audio_key, duration)
 
     def start(self,):
         server = pywsgi.WSGIServer(
