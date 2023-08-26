@@ -37,10 +37,12 @@ XML_MEDIA_STREAM = """
 </Response>
 """
 
-class TTSClient(ABC):
-    @abstractmethod
+class GoogleTTS:
     def text_to_mp3(self, text: str, output_fn: Optional[str] = None) -> str:
-        pass
+        tmp_fn = output_fn or os.path.join(tempfile.mkdtemp(), "tts.mp3")
+        tts = gTTS(text, lang="en")
+        tts.save(tmp_fn)
+        return tmp_fn
 
     def play_text(self, text: str) -> str:
         tmp_mp3 = self.text_to_mp3(text)
@@ -74,13 +76,6 @@ class TTSClient(ABC):
         duration = float(output.split("=")[1].split("\n")[0])
         return duration
 
-class GoogleTTS(TTSClient):
-    def text_to_mp3(self, text: str, output_fn: Optional[str] = None) -> str:
-        tmp_fn = output_fn or os.path.join(tempfile.mkdtemp(), "tts.mp3")
-        tts = gTTS(text, lang="en")
-        tts.save(tmp_fn)
-        return tmp_fn
-
 class TalkerCradle:
     def __init__(
             self,
@@ -88,15 +83,15 @@ class TalkerCradle:
             static_dir: str,
             remote_host: str,
             init_phrase: Optional[str] = None,
-            tts: Optional[TTSClient] = None,
             thinking_phrase: str = "OK",
             whisper_model_size: str = "tiny"
             ):
         self.init_phrase = init_phrase
 
         print(f"Loading whisper {whisper_model_size}...")
-        self.audio2text_model = whisper.load_model(whisper_model_size)
+        self.audio2text_sys = whisper.load_model(whisper_model_size)
         print("Done.")
+        self.text2audio_sys = GoogleTTS() 
 
         self.recognizer = sr.Recognizer()
         #self.recognizer.energy_threshold = 300
@@ -107,7 +102,6 @@ class TalkerCradle:
         self.system_prompt = system_prompt
         self.thinking_phrase = thinking_phrase
         self.static_dir = static_dir
-        self.speaker = tts or GoogleTTS()
         self.remote_host = remote_host
 
         self._call = None
@@ -137,8 +131,8 @@ class TalkerCradle:
         text = self.get_response(transcript)
         print(f"[Cradle]:\t {text}")
         key, tts_fn = self.get_audio_fn_and_key(text)
-        self.speaker.text_to_mp3(text, output_fn=tts_fn)
-        duration = self.speaker.get_duration(tts_fn)
+        self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
+        duration = self.text2audio_sys.get_duration(tts_fn)
         self._play(key, duration)
 
         return text
@@ -161,7 +155,7 @@ class TalkerCradle:
                 data = io.BytesIO(audio.get_wav_data())
                 audio_clip = AudioSegment.from_file(data)
                 audio_clip.export(tmp_path, format="wav")
-                result = self.audio2text_model.transcribe(tmp_path, language="english", fp16=False)
+                result = self.audio2text_sys.transcribe(tmp_path, language="english", fp16=False)
         predicted_text = result["text"]
         print(f"[Recipient]:\t {predicted_text}")
         self.stream = None
