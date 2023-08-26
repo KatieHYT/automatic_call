@@ -131,8 +131,6 @@ class TalkerCradle:
         print(f"[Recipient]:\t {predicted_text}")
         self.play_text_audio(self.thinking_phrase)
 
-        talker_x.stream = None
-
         return predicted_text
 
 class TalkerX(sr.AudioSource):
@@ -146,7 +144,7 @@ class TalkerX(sr.AudioSource):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        self.stream = None
 
     def write_audio_data_to_stream(self, chunk):
         # μ-law encoded audio data to linear encoding, and then writes the converted data to the audio stream.
