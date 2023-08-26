@@ -5,9 +5,7 @@ from pydub import AudioSegment
 import io
 from typing import List, Optional
 from abc import ABC, abstractmethod
-import tempfile
 import audioop
-import queue
 import json
 import base64
 import os
@@ -20,8 +18,10 @@ import whisper
 import functools
 import threading
 import time
-from gtts import gTTS
-import subprocess
+import tempfile
+
+from text_to_speech import GoogleTTS
+from tools import QueueStream
 
 openai.api_key = os.environ["OPENAI_KEY"]
 
@@ -36,23 +36,6 @@ XML_MEDIA_STREAM = """
   </Say>
 </Response>
 """
-
-class GoogleTTS:
-    def text_to_mp3(self, text: str, output_fn: Optional[str] = None) -> str:
-        tmp_fn = output_fn or os.path.join(tempfile.mkdtemp(), "tts.mp3")
-        tts = gTTS(text, lang="en")
-        tts.save(tmp_fn)
-        return tmp_fn
-
-    def get_duration(self, audio_fn: str) -> float:
-        popen = subprocess.Popen(
-            ["ffprobe", "-hide_banner", "-loglevel", "error", "-show_entries", "format=duration", "-i", audio_fn],
-            stdout=subprocess.PIPE,
-        )
-        popen.wait()
-        output = popen.stdout.read().decode("utf-8")
-        duration = float(output.split("=")[1].split("\n")[0])
-        return duration
 
 class TalkerCradle:
     def __init__(
@@ -171,18 +154,7 @@ class TalkerX(sr.AudioSource):
         self.stream.write(tmp)
 
     def turn_on_stream(self, ):
-        self.stream = _QueueStream()
-        
-
-class _QueueStream:
-    def __init__(self):
-        self.q = queue.Queue(maxsize=-1)
-
-    def read(self, chunk: int) -> bytes:
-        return self.q.get()
-
-    def write(self, chunk: bytes):
-        self.q.put(chunk)
+        self.stream = QueueStream()
 
 class CradleCallCenter:
     def __init__(self, remote_host: str, port: int, static_dir: str):
