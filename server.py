@@ -86,25 +86,28 @@ class TalkerCradle:
             thinking_phrase: str = "OK",
             whisper_model_size: str = "tiny"
             ):
+        
+        self.system_prompt = system_prompt
         self.init_phrase = init_phrase
+        self.thinking_phrase = thinking_phrase
 
+        # STT: Speech to Text
+        self.audio_listener = sr.Recognizer()
+        #self.audio_listener.energy_threshold = 300
+        #self.audio_listener.pause_threshold = 2.5
+        #self.audio_listener.dynamic_energy_threshold = False
         print(f"Loading whisper {whisper_model_size}...")
         self.audio2text_sys = whisper.load_model(whisper_model_size)
         print("Done.")
+        
+        # TTS: Text to Speech
         self.text2audio_sys = GoogleTTS() 
 
-        self.recognizer = sr.Recognizer()
-        #self.recognizer.energy_threshold = 300
-        #self.recognizer.pause_threshold = 2.5
-        #self.recognizer.dynamic_energy_threshold = False
-        self.stream = None
-
-        self.system_prompt = system_prompt
-        self.thinking_phrase = thinking_phrase
         self.static_dir = static_dir
         self.remote_host = remote_host
 
         self._call = None
+        self.stream = None
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
@@ -144,19 +147,25 @@ class TalkerCradle:
         )
         time.sleep(duration + 0.2)
 
+    def record_audio_to_disk(self, source, tmp_dir):
+        tmp_path = os.path.join(tmp_dir, "mic.wav")
+        # wait for thinking at most 4 seconds
+        # wait for the response at most 5 secons
+        audio = self.audio_listener.listen(source)
+        data = io.BytesIO(audio.get_wav_data())
+        audio_clip = AudioSegment.from_file(data)
+        audio_clip.export(tmp_path, format="wav")
+
+        return tmp_path
+
     def listen_and_transcribe(self) -> str:
         self.stream = _QueueStream()
         with _TwilioSource(self.stream) as source:
             print("Waiting for twilio caller...")
-            with tempfile.TemporaryDirectory() as tmp:
-                tmp_path = os.path.join(tmp, "mic.wav")
-                # wait for thinking at most 4 seconds
-                # wait for the response at most 5 secons
-                audio = self.recognizer.listen(source)
-                data = io.BytesIO(audio.get_wav_data())
-                audio_clip = AudioSegment.from_file(data)
-                audio_clip.export(tmp_path, format="wav")
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = self.record_audio_to_disk(source, tmp_dir)
                 result = self.audio2text_sys.transcribe(tmp_path, language="english", fp16=False)
+
         predicted_text = result["text"]
         print(f"[Recipient]:\t {predicted_text}")
         self.play_text_audio(self.thinking_phrase)
@@ -273,6 +282,6 @@ if __name__ == '__main__':
     # force to use CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     
-    tws = CradleServer(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
+    tws = CradleCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir='./any_audio')
     tws.start()
     
