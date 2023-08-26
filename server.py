@@ -38,6 +38,10 @@ XML_MEDIA_STREAM = """
 """
 
 class TalkerCradle:
+    """
+    Audio (listn to talker_x) -> TalkerCradle -> Audio (file on disk)
+    """
+
     def __init__(
             self,
             system_prompt: str,
