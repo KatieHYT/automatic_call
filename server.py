@@ -120,7 +120,6 @@ class TalkerCradle:
         return tmp_path
 
     def listen_and_transcribe(self, talker_x) -> str:
-        talker_x.turn_on_stream()
         with talker_x as source:
             print("Waiting for twilio caller...")
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -141,6 +140,7 @@ class TalkerX(sr.AudioSource):
         self.SAMPLE_WIDTH = 2 
 
     def __enter__(self):
+        self.stream = QueueStream()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -150,9 +150,6 @@ class TalkerX(sr.AudioSource):
         # μ-law encoded audio data to linear encoding, and then writes the converted data to the audio stream.
         tmp = audioop.ulaw2lin(chunk, 2)
         self.stream.write(tmp)
-
-    def turn_on_stream(self, ):
-        self.stream = QueueStream()
 
 class CradleCallCenter:
     def __init__(self, remote_host: str, port: int, static_dir: str):
