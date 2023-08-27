@@ -1,3 +1,4 @@
+import requests
 import queue
 import speech_recognition as sr
 import audioop
@@ -11,6 +12,9 @@ import io
 from pydub import AudioSegment
 import time
 import openai
+
+ELEVEN_LABS_API_KEY = os.environ["ELEVEN_LABS_API_KEY"]
+ELEVEN_LABS_VOICE_ID = os.environ["ELEVEN_LABS_VOICE_ID"]
 
 class QueueStream:
     def __init__(self):
@@ -71,7 +75,7 @@ class TalkerCradle:
             static_dir: str,
             init_phrase: Optional[str] = None,
             thinking_phrase: str = "OK",
-            whisper_model_size: str = "tiny"
+            whisper_model_size: str = "base.en"
             ):
         
         self.system_prompt = system_prompt
@@ -98,7 +102,7 @@ class TalkerCradle:
             for i, text in enumerate(reversed(transcript)):
                 messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
             output = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=messages,
             )
             response = output["choices"][0]["message"]["content"]
@@ -130,11 +134,35 @@ class TalkerCradle:
         return text, audio_key, duration
 
     def text_to_audiofile(self, text: str):
+        #audio_key, tts_fn = self.get_audio_fn_and_key(text)
+        #self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
+        #duration = self.text2audio_sys.get_duration(tts_fn)
+        #
+        #return audio_key, duration
+
+        url = f'https://api.elevenlabs.io/v1/text-to-speech/{ELEVEN_LABS_VOICE_ID}'
+        headers = {
+            'accept': 'audio/mpeg',
+            'xi-api-key': ELEVEN_LABS_API_KEY,
+            'Content-Type': 'application/json'
+        }
+        data = {
+            'text': text,
+            'voice_settings': {
+                'stability': 0.5,
+                'similarity_boost': 0.25
+            }
+        }
         audio_key, tts_fn = self.get_audio_fn_and_key(text)
-        self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
-        duration = self.text2audio_sys.get_duration(tts_fn)
-        
-        return audio_key, duration
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            with open(tts_fn, "wb") as out:
+                # Write the response to the output file.
+                out.write(response.content)
+            duration = self.text2audio_sys.get_duration(tts_fn)
+            return audio_key, duration
+        else:
+            assert 1==0, "fix it!"
 
     def record_audio_to_disk(self, source, tmp_dir):
         tmp_path = os.path.join(tmp_dir, "mic.wav")
