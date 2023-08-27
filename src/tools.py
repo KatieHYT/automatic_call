@@ -1,4 +1,3 @@
-import requests
 import queue
 import speech_recognition as sr
 import audioop
@@ -12,9 +11,10 @@ import io
 from pydub import AudioSegment
 import time
 import openai
+import sys
 
-ELEVEN_LABS_API_KEY = os.environ["ELEVEN_LABS_API_KEY"]
-ELEVEN_LABS_VOICE_ID = os.environ["ELEVEN_LABS_VOICE_ID"]
+sys.path.append("..")
+from src.text_to_speech import ElevenLabTTS
 
 class QueueStream:
     def __init__(self):
@@ -25,23 +25,6 @@ class QueueStream:
 
     def write(self, chunk: bytes):
         self.q.put(chunk)
-
-class GoogleTTS:
-    def text_to_mp3(self, text: str, output_fn: Optional[str] = None) -> str:
-        tmp_fn = output_fn or os.path.join(tempfile.mkdtemp(), "tts.mp3")
-        tts = gTTS(text, lang="en")
-        tts.save(tmp_fn)
-        return tmp_fn
-
-    def get_duration(self, audio_fn: str) -> float:
-        popen = subprocess.Popen(
-            ["ffprobe", "-hide_banner", "-loglevel", "error", "-show_entries", "format=duration", "-i", audio_fn],
-            stdout=subprocess.PIPE,
-        )
-        popen.wait()
-        output = popen.stdout.read().decode("utf-8")
-        duration = float(output.split("=")[1].split("\n")[0])
-        return duration
 
 class TalkerX(sr.AudioSource):
     def __init__(self, ):
@@ -75,7 +58,7 @@ class TalkerCradle:
             static_dir: str,
             init_phrase: Optional[str] = None,
             thinking_phrase: str = "OK",
-            whisper_model_size: str = "base.en"
+            whisper_model_size: str = "tiny.en"
             ):
         
         self.system_prompt = system_prompt
@@ -89,7 +72,7 @@ class TalkerCradle:
         print("\tDone.")
         
         # TTS: Text to Speech
-        self.text2audio_sys = GoogleTTS() 
+        self.text2audio_sys = ElevenLabTTS() 
 
         self.static_dir = static_dir
         self.phone_operator = None
@@ -102,7 +85,8 @@ class TalkerCradle:
             for i, text in enumerate(reversed(transcript)):
                 messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
             output = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                #model="gpt-3.5-turbo",
+                model="gpt-4",
                 messages=messages,
             )
             response = output["choices"][0]["message"]["content"]
@@ -134,35 +118,11 @@ class TalkerCradle:
         return text, audio_key, duration
 
     def text_to_audiofile(self, text: str):
-        #audio_key, tts_fn = self.get_audio_fn_and_key(text)
-        #self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
-        #duration = self.text2audio_sys.get_duration(tts_fn)
-        #
-        #return audio_key, duration
-
-        url = f'https://api.elevenlabs.io/v1/text-to-speech/{ELEVEN_LABS_VOICE_ID}'
-        headers = {
-            'accept': 'audio/mpeg',
-            'xi-api-key': ELEVEN_LABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        data = {
-            'text': text,
-            'voice_settings': {
-                'stability': 0.5,
-                'similarity_boost': 0.25
-            }
-        }
         audio_key, tts_fn = self.get_audio_fn_and_key(text)
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 200:
-            with open(tts_fn, "wb") as out:
-                # Write the response to the output file.
-                out.write(response.content)
-            duration = self.text2audio_sys.get_duration(tts_fn)
-            return audio_key, duration
-        else:
-            assert 1==0, "fix it!"
+        self.text2audio_sys.text_to_mp3(text, output_fn=tts_fn)
+        duration = self.text2audio_sys.get_duration(tts_fn)
+        
+        return audio_key, duration
 
     def record_audio_to_disk(self, source, tmp_dir):
         tmp_path = os.path.join(tmp_dir, "mic.wav")
