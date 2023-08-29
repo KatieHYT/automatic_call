@@ -132,6 +132,7 @@ class FlaskCallCenter:
         print("Server listening on: http://localhost:" + str(self.port))
         server.serve_forever()
 
+    def run(self,):
         return self.app
 
 def create_app():
@@ -143,7 +144,7 @@ def create_app():
     
     tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=5000, static_dir=static_dir)
 
-    return tws.start()
+    return tws.run()
 
 if __name__ == '__main__':
     # force to use CPU
@@ -154,5 +155,5 @@ if __name__ == '__main__':
         os.makedirs(static_dir)
     
     tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir=static_dir)
-    _ = tws.start()
+    tws.start()
     
