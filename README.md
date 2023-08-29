@@ -8,10 +8,10 @@
   ```
 - Step-2: build docker image
   ```
-  docker build -t flask-app .
+  docker build -t flask_docker .
   ```
 
 - Step-3: run docker container
   ```
-  docker run -d --env-file .env -p 80:80 --name my-flask-app flask-app
+  docker run -dit --env-file .env -p 80:80 --name flask_container flask_docker
   ```

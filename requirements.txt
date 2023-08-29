@@ -14,3 +14,4 @@ SpeechRecognition
 gtts
 whisper
 pydub
+gunicorn

@@ -132,6 +132,19 @@ class FlaskCallCenter:
         print("Server listening on: http://localhost:" + str(self.port))
         server.serve_forever()
 
+        return self.app
+
+def create_app():
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    static_dir = "./static_dir"
+    if not os.path.exists(static_dir):
+        os.makedirs(static_dir)
+    
+    tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=5000, static_dir=static_dir)
+
+    return tws.start()
+
 if __name__ == '__main__':
     # force to use CPU
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -141,5 +154,5 @@ if __name__ == '__main__':
         os.makedirs(static_dir)
     
     tws = FlaskCallCenter(remote_host=os.environ["REMOTE_HOST_URL"], port=2000, static_dir=static_dir)
-    tws.start()
+    _ = tws.start()
     
