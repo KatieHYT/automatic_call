@@ -49,14 +49,14 @@
   ```
 - create your `.env` file to store environemnt variables
   ```
-  export TWILIO_ACCOUNT_SID="AC3af075b86d82096251b059536575eb8c"
-  export TWILIO_AUTH_TOKEN="e547a2b0504b9e868db89084b47507ea"
-  export TWILIO_PHONE_NUMBER="+18777495792"
+  export TWILIO_ACCOUNT_SID="..."
+  export TWILIO_AUTH_TOKEN="..."
+  export TWILIO_PHONE_NUMBER="..."
   export REMOTE_HOST_URL="<ngrok url from the above step>"
-  export OPENAI_API_KEY="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"
+  export OPENAI_API_KEY="..."
   
-  export ELEVEN_LABS_API_KEY="8770d56af60ac360f8b25f453a95cbd3"
-  export ELEVEN_LABS_VOICE_ID="LcfcDJNUP1GQjkzn1xUU"
+  export ELEVEN_LABS_API_KEY="..."
+  export ELEVEN_LABS_VOICE_ID="..."
   ```
 - export environment variables
   ```
