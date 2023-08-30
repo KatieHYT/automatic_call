@@ -76,10 +76,8 @@
   ```
 - make a call
   ```
-   python call.py --call_to <destination-phone-number> --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
+   python call.py --call_to <destination-phone-number> --ngrok_url <xxxxxxx.ngrok-free.app> --twilio_account_sid <...> --twilio_auth_token <...>
   
-  e.g., I want to call +14156054429: 
-  python call.py --call_to +14156054429 --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
   ```
 
 ## Call via application server on AWS 
@@ -104,10 +102,7 @@
   ```
 - make a call
   ```
-   python call.py --call_to <destination-phone-number> --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
-  
-  e.g., I want to call +14156054429: 
-  python call.py --call_to +14156054429 --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
+   python call.py --call_to <destination-phone-number> --ngrok_url <xxxxxxx.ngrok-free.app> --twilio_account_sid <...> --twilio_auth_token <...>
   ```
 
 ## deploy on AWS
