@@ -69,6 +69,7 @@
   ```
 - open another terminal (remember to enter the container) export `.env`again
   ```
+  cd automatic_call
   source .env
   cd script
   ```
