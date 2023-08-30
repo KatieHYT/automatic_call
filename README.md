@@ -21,6 +21,7 @@
   ```
   pip install -r requirements.txt
   pip install git+https://github.com/openai/whisper.git
+  apt-get update
   apt-get install -y ffmpeg
   ```
 - install ngrok
