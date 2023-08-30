@@ -89,7 +89,7 @@
 - run docker container
   it takes some time to download the image   
   ```
-  docker run -d -e NGROK_AUTHTOKEN=<your ngrok authtoken> -it --name cradle_call -p 2000:2000 -v /:/TOP nvcr.io/nvidia/pytorch:23.07-py3
+  docker run -d -it --name cradle_call -p 2000:2000 -v /:/TOP nvcr.io/nvidia/pytorch:23.07-py3
   ```
 - enter into the container
   ```
