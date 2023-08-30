@@ -1,6 +1,6 @@
 # automatic_call
 
-## Environment setting
+## Environment setting & Usage
 - install docker
   ```
   sudo apt-get update
