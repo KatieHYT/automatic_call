@@ -1,6 +1,6 @@
 # automatic_call
 
-## Environment setting & Usage
+## Serve your own application server
 - install docker
   ```
   sudo apt-get update
@@ -76,7 +76,38 @@
   ```
 - make a call
   ```
-  python call.py
+   python call.py --call_to <destination-phone-number> --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
+  
+  e.g., I want to call +14156054429: 
+  python call.py --call_to +14156054429 --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
+  ```
+
+## Call via application server on AWS 
+- install docker
+  ```
+  sudo apt-get update
+  sudo apt  install docker.io
+  ```
+- run docker container
+  it takes some time to download the image   
+  ```
+  docker run -d -e NGROK_AUTHTOKEN=<your ngrok authtoken> -it --name cradle_call -p 2000:2000 -v /:/TOP nvcr.io/nvidia/pytorch:23.07-py3
+  ```
+- enter into the container
+  ```
+  docker exec -it cradle_call bash
+  ```
+- git clone this repo
+- install twilio
+  ```
+  pip install twilio
+  ```
+- make a call
+  ```
+   python call.py --call_to <destination-phone-number> --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
+  
+  e.g., I want to call +14156054429: 
+  python call.py --call_to +14156054429 --ngrok_url 3743-35-89-9-90.ngrok-free.app --twilio_account_sid AC98cee2d20810a0cb764637590986ac42 --twilio_auth_token e433c9f198eb85b102aa1008ca99b6c3
   ```
 
 ## deploy on AWS
