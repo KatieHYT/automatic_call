@@ -19,6 +19,7 @@
 - git clone this repo
 - install packages
   ```
+  cd automatic_call
   pip install -r requirements.txt
   pip install git+https://github.com/openai/whisper.git
   apt-get update
