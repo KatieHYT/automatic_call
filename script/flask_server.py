@@ -34,13 +34,13 @@ class FlaskCallCenter:
         self.twilio_client = Client(account_sid, auth_token)
 
 
-        @self.app.route("/twiml", methods=["POST"])
+        @self.app.route("/", methods=["POST"])
         def incoming_voice():
-            print("---> inside /twiml")
+            print("---> inside imcomving_voice")
             XML_MEDIA_STREAM = """
             <Response>
               <Start>
-                <Stream url="wss://{host}/"></Stream>
+                <Stream url="wss://{host}/streaming" />
               </Start>
               <Pause length="60"/>
               <Say>
@@ -50,7 +50,7 @@ class FlaskCallCenter:
             """
             return XML_MEDIA_STREAM.format(host=self.remote_host)
         
-        @self.sock.route("/")
+        @self.sock.route("/streaming")
         def on_media_stream(ws):
             print("---> inside /    socket")
             agent_a = TalkerCradle(
