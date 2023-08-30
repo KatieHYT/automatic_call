@@ -21,6 +21,7 @@
   ```
   pip install -r requirements.txt
   pip install git+https://github.com/openai/whisper.git
+  apt-get update
   apt-get install -y ffmpeg
   ```
 - install ngrok
@@ -41,6 +42,10 @@
   https://aba4-54-190-224-84.ngrok-free.app -> http://localhost:2000
 
   then you copy: aba4-54-190-224-84.ngrok-free.app
+  ```
+- open another terminal(remember to enter the container)
+  ```
+  cd automatic_call
   ```
 - create your `.env` file to store environemnt variables
   ```
@@ -64,6 +69,7 @@
   ```
 - open another terminal (remember to enter the container) export `.env`again
   ```
+  cd automatic_call
   source .env
   cd script
   ```
