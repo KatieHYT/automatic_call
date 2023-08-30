@@ -43,6 +43,10 @@
 
   then you copy: aba4-54-190-224-84.ngrok-free.app
   ```
+- open another terminal(remember to enter the container)
+  ```
+  cd automatic_call
+  ```
 - create your `.env` file to store environemnt variables
   ```
   export TWILIO_ACCOUNT_SID="AC3af075b86d82096251b059536575eb8c"
