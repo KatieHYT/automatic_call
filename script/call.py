@@ -12,7 +12,7 @@ remote_host_url = os.environ["REMOTE_HOST_URL"]
 call = client.calls.create(
                         to='+14156054429',
                         from_='+18777495792',
-                        url=f"https://{remote_host_url}/twiml",
+                        url=f"https://{remote_host_url}/",
                     )
 
 print(call.sid)
