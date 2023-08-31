@@ -58,7 +58,7 @@ class TalkerCradle:
             static_dir: str,
             init_phrase: Optional[str] = None,
             thinking_phrase: str = "OK",
-            whisper_model_size: str = "tiny.en"
+            whisper_model_size: str = "base.en"
             ):
         
         self.system_prompt = system_prompt
@@ -128,10 +128,35 @@ class TalkerCradle:
         tmp_path = os.path.join(tmp_dir, "mic.wav")
         # wait for thinking at most 4 seconds
         # wait for the response at most 5 secons
-        audio = self.audio_listener.listen(source)
+         
+        print("\t Adjusting ambient noise...")
+        start_time = time.time()
+        self.audio_listener.adjust_for_ambient_noise(source, duration=2)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Listening...")
+        start_time = time.time()
+        audio = self.audio_listener.listen(source, None, 7)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Wav to bytes...")
+        start_time = time.time()
         data = io.BytesIO(audio.get_wav_data())
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Audio to disk...")
+        start_time = time.time()
         audio_clip = AudioSegment.from_file(data)
         audio_clip.export(tmp_path, format="wav")
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
 
         return tmp_path
 
@@ -140,12 +165,7 @@ class TalkerCradle:
         with talker_x as source:
             print("Listening to talker_x...")
             with tempfile.TemporaryDirectory() as tmp_dir:
-                print("\t Audio to disk...")
-                start_time = time.time()
                 tmp_path = self.record_audio_to_disk(source, tmp_dir)
-                end_time = time.time()
-                time_taken = end_time - start_time
-                print("\t\t Time taken:", time_taken, "seconds")
                 
                 print("\t Speech to text...")
                 start_time = time.time()

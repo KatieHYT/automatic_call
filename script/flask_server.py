@@ -96,7 +96,7 @@ class FlaskCallCenter:
         phone_operator.update(
             twiml=f'<Response><Play>https://{self.remote_host}/audio/{audio_key}</Play><Pause length="60"/></Response>'
         )
-        time.sleep(duration + 0.2)
+        time.sleep(duration)
 
     def hang_up(self, phone_operator):
         phone_operator.update(
@@ -114,6 +114,8 @@ class FlaskCallCenter:
             text_a, audio_key, duration = agent_a.think_what_to_say(transcript_list)
             self.reply(agent_a.phone_operator, audio_key, duration)
             transcript_list.append(text_a)
+             
+            time.sleep(0.2)
 
             text_b = agent_a.listen_and_transcribe(talker_x)
             transcript_list.append(text_b)
