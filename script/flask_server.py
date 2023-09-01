@@ -1,3 +1,4 @@
+from flask_cors import CORS
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
 import openai
@@ -8,7 +9,7 @@ import base64
 import os
 from twilio.rest import Client
 from gevent.pywsgi import WSGIServer
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, request
 from flask_sockets import Sockets
 import functools
 import threading
@@ -17,12 +18,14 @@ import tempfile
 import speech_recognition as sr
 import sys
 
+
 sys.path.append("..")
 from src.tools import TalkerX, TalkerCradle
 
 class FlaskCallCenter:
     def __init__(self, remote_host: str, port: int, static_dir: str):
         self.app = Flask(__name__)
+        CORS(self.app)
         self.sock = Sockets(self.app)
         self.remote_host = remote_host
         self.port = port
@@ -30,9 +33,17 @@ class FlaskCallCenter:
 
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
-        self.from_phone = os.environ["TWILIO_PHONE_NUMBER"]
         self.twilio_client = Client(account_sid, auth_token)
 
+        @self.app.route("/call", methods=["POST"])
+        def call():
+            post_data = request.json
+            call_to = post_data['call_to']
+            self.twilio_client.calls.create(
+                to=call_to,
+                from_=os.environ['TWILIO_PHONE_NUMBER'],
+                url=f"https://{self.remote_host}/",
+            )
 
         @self.app.route("/", methods=["POST"])
         def incoming_voice():
