@@ -17,6 +17,7 @@ import time
 import tempfile
 import speech_recognition as sr
 import sys
+import datetime
 
 
 sys.path.append("..")
@@ -39,11 +40,13 @@ class FlaskCallCenter:
         def call():
             post_data = request.json
             call_to = post_data['call_to']
-            self.twilio_client.calls.create(
+            call = self.twilio_client.calls.create(
                 to=call_to,
                 from_=os.environ['TWILIO_PHONE_NUMBER'],
                 url=f"https://{self.remote_host}/",
             )
+            self.save_use_record(call.sid)
+
 
         @self.app.route("/", methods=["POST"])
         def incoming_voice():
@@ -102,6 +105,15 @@ class FlaskCallCenter:
         @self.app.route("/audio/<key>")
         def audio(key):
             return send_from_directory(self.static_dir, str(int(key)) + ".mp3")
+
+    def save_use_record(self, file_content, save_dir='./use_record'):
+        current_datetime = datetime.datetime.now()
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d-%H-%M-%S")
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        save_path = os.path.join(save_dir, f"{formatted_datetime}.txt")
+        with open(save_path, "w") as file:
+            file.write(file_content)
 
     def reply(self, phone_operator, audio_key, duration):
         phone_operator.update(
