@@ -9,7 +9,7 @@ import base64
 import os
 from twilio.rest import Client
 from gevent.pywsgi import WSGIServer
-from flask import Flask, render_template, send_from_directory, request
+from flask import Flask, render_template, send_from_directory, request, jsonify
 from flask_sockets import Sockets
 import functools
 import threading
@@ -46,6 +46,9 @@ class FlaskCallCenter:
                 url=f"https://{self.remote_host}/",
             )
             self.save_use_record(call.sid)
+
+            response_data = {"message": "POST request to /call was successful"}
+            return jsonify(response_data), 200
 
 
         @self.app.route("/", methods=["POST"])
