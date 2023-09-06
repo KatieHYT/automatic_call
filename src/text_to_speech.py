@@ -3,7 +3,8 @@ import subprocess
 from gtts import gTTS
 import os
 import requests
-
+from elevenlabs import generate
+from elevenlabs import set_api_key
 
 class TTSHelper(ABC):
     @abstractmethod
@@ -27,29 +28,15 @@ class GoogleTTS(TTSHelper):
         tts.save(output_fn)
 
 class ElevenLabTTS(TTSHelper):
-    def __init__(self):
-        self.ELEVEN_LABS_API_KEY = os.environ["ELEVEN_LABS_API_KEY"]
-        self.ELEVEN_LABS_VOICE_ID = os.environ["ELEVEN_LABS_VOICE_ID"]
+    def __init__(self, selected_voice):
+        set_api_key(os.environ["ELEVEN_LABS_API_KEY"])
+        self.selected_voice = selected_voice
 
     def text_to_mp3(self, text: str, output_fn: str) -> str:
-        url = f'https://api.elevenlabs.io/v1/text-to-speech/{self.ELEVEN_LABS_VOICE_ID}'
-        headers = {
-            'accept': 'audio/mpeg',
-            'xi-api-key': self.ELEVEN_LABS_API_KEY,
-            'Content-Type': 'application/json'
-        }
-        data = {
-            'text': text,
-            'voice_settings': {
-                'stability': 0.5,
-                'similarity_boost': 0.25
-            }
-        }
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 200:
-            with open(output_fn, "wb") as out:
-                # Write the response to the output file.
-                out.write(response.content)
-        else:
-            assert 1==0, "fix it!"
-
+        audio = generate(
+            text=text,
+            voice=self.selected_voice,
+            model='eleven_monolingual_v1'
+        )
+        with open(output_fn, "wb") as out:
+            out.write(audio)

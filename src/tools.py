@@ -12,6 +12,7 @@ from pydub import AudioSegment
 import time
 import openai
 import sys
+import random
 
 sys.path.append("..")
 from src.text_to_speech import ElevenLabTTS
@@ -71,11 +72,55 @@ class TalkerCradle:
         self.audio2text_sys = whisper.load_model(whisper_model_size)
         print("\tDone.")
         
-        # TTS: Text to Speech
-        self.text2audio_sys = ElevenLabTTS() 
 
         self.static_dir = static_dir
         self.phone_operator = None
+        
+        voice_list = [
+                'Rachel',
+                'Clyde',
+                'Domi',
+                'Dave',
+                'Fin',
+                'Bella',
+                'Antoni',
+                'Thomas',
+                'Charlie',
+                'Emily',
+                'Elli',
+                'Callum',
+                'Patrick',
+                'Harry',
+                'Liam',
+                'Dorothy',
+                'Josh',
+                'Arnold',
+                'Charlotte',
+                'Matilda',
+                'Matthew',
+                'James',
+                'Joseph',
+                'Jeremy',
+                'Michael',
+                'Ethan',
+                'Gigi',
+                'Freya',
+                'Grace',
+                'Daniel',
+                'Serena',
+                'Adam',
+                'Nicole',
+                'Jessie',
+                'Ryan',
+                'Sam',
+                'Glinda',
+                'Giovanni',
+                'Mimi',
+                ]
+        selected_voice = random.choice(voice_list)
+        print(f"Seleted Voice: {selected_voice}")
+        # TTS: Text to Speech
+        self.text2audio_sys = ElevenLabTTS(selected_voice=selected_voice) 
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
