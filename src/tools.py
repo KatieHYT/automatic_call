@@ -127,7 +127,7 @@ class TalkerCradle:
                 "Uh-huh",
                 "alright",
                 ]
-        self.system_prompt=f"You are the one who has a dog, you need to check detailed dog policy of the store you are going to. In each exchange, ask the recipient only one yes/no question."
+        self.system_prompt=f"You are the one who has a dog, during the phone call, you need to check detailed dog policy of the store you are going to. In each exchange, ask the recipient only one yes/no question."
         self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
 
     def get_response(self, transcript: List[str]) -> str:
