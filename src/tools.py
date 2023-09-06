@@ -110,10 +110,10 @@ class TalkerCradle:
                 'Giovanni',
                 'Mimi',
                 ]
-        selected_voice = random.choice(voice_list)
-        print(f"Seleted Voice: {selected_voice}")
+        self.selected_voice = random.choice(voice_list)
+        print(f"Seleted Voice: {self.selected_voice}")
         # TTS: Text to Speech
-        self.text2audio_sys = ElevenLabTTS(selected_voice=selected_voice) 
+        self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
 
         self.thinking_phrase_list = [
                 "ok",
@@ -127,8 +127,8 @@ class TalkerCradle:
                 "Uh-huh",
                 "alright",
                 ]
-        self.system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question."
-        self.init_phrase=f"Hello, this is {selected_voice}. Can I bring my dog to your place?"
+        self.system_prompt=f"You are the one who has a dog, you need to check detailed dog policy of the store you are going to. In each exchange, ask the recipient only one yes/no question."
+        self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
