@@ -18,7 +18,7 @@ import tempfile
 import speech_recognition as sr
 import sys
 import datetime
-
+import random
 
 sys.path.append("..")
 from src.tools import TalkerX, TalkerCradle
@@ -68,8 +68,6 @@ class FlaskCallCenter:
         def on_media_stream(ws):
             print("---> inside /    socket")
             agent_a = TalkerCradle(
-                    system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question.",
-                    init_phrase="Hello, this is Cradle wiki. Can I bring my dog to your place?",
                     static_dir=self.static_dir,
              )
             talker_x = TalkerX()
@@ -131,9 +129,8 @@ class FlaskCallCenter:
             time.sleep(0.1)
 
         transcript_list = []
-        round_cnt = 0
-        while round_cnt <=3:
-            round_cnt += 1
+
+        for i in range(3):
             text_a, audio_key, duration = agent_a.think_what_to_say(transcript_list)
             self.reply(agent_a.phone_operator, audio_key, duration)
             transcript_list.append(text_a)
@@ -142,8 +139,9 @@ class FlaskCallCenter:
 
             text_b = agent_a.listen_and_transcribe(talker_x)
             transcript_list.append(text_b)
-          
-            audio_key, duration = agent_a.text_to_audiofile(agent_a.thinking_phrase)
+            
+            thinking_phrase = random.choice(agent_a.thinking_phrase_list)
+            audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
             self.reply(agent_a.phone_operator, audio_key, duration)
 
         audio_key, duration = agent_a.text_to_audiofile("I got it! Thank you! Good Bye!")

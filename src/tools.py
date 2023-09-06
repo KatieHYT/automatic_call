@@ -55,17 +55,10 @@ class TalkerCradle:
 
     def __init__(
             self,
-            system_prompt: str,
             static_dir: str,
-            init_phrase: Optional[str] = None,
-            thinking_phrase: str = "OK",
             whisper_model_size: str = "base.en"
             ):
         
-        self.system_prompt = system_prompt
-        self.init_phrase = init_phrase
-        self.thinking_phrase = thinking_phrase
-
         # STT: Speech to Text
         self.audio_listener = sr.Recognizer()
         print(f"Loading whisper {whisper_model_size}...")
@@ -121,6 +114,21 @@ class TalkerCradle:
         print(f"Seleted Voice: {selected_voice}")
         # TTS: Text to Speech
         self.text2audio_sys = ElevenLabTTS(selected_voice=selected_voice) 
+
+        self.thinking_phrase_list = [
+                "ok",
+                "right",
+                "I see",
+                "Got it",
+                "understood",
+                "okay",
+                "well",
+                "Mhmm",
+                "Uh-huh",
+                "alright",
+                ]
+        self.system_prompt="You are conducting a dog-friendly survey. In each exchange, ask only one yes/no question."
+        self.init_phrase=f"Hello, this is {selected_voice}. Can I bring my dog to your place?"
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
