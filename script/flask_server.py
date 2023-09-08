@@ -41,6 +41,7 @@ class FlaskCallCenter:
         def checkcall():
             post_data = request.json
             latlng = post_data['latlng']
+            print(f"Checking call history...{latlng}")
             last_list = os.listdir(os.environ["LAST_CALL_DIR"])
             call_conversation=None
             if latlng+'.txt' in last_list:
@@ -49,7 +50,9 @@ class FlaskCallCenter:
                 with open(path, 'r') as file:
                     # Read the entire file content into a variable
                     call_conversation = file.read() 
-            response_data = {"call_conversation": call_conversation}
+            response_data = {
+                    "message": "POST request to /call was successful",
+                    "call_conversation": call_conversation}
 
             return jsonify(response_data), 200
 
@@ -68,6 +71,7 @@ class FlaskCallCenter:
             
             self.sid2latlng[call.sid] = latlng
             response_data = {"message": "POST request to /call was successful"}
+
             return jsonify(response_data), 200
 
 
