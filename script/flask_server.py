@@ -36,6 +36,22 @@ class FlaskCallCenter:
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         self.twilio_client = Client(account_sid, auth_token)
 
+        @self.app.route("/checkcall", methods=["POST"])
+        def checkcall():
+            post_data = request.json
+            latlng = post_data['latlng']
+            last_list = os.listdir(os.environ["LAST_CALL_DIR"])
+            call_conversation=None
+            if latlng+'.txt' in last_list:
+                path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
+                # Open the file in read mode ('r')
+                with open(path, 'r') as file:
+                    # Read the entire file content into a variable
+                    call_conversation = file.read() 
+            response_data = {"call_conversation": call_conversation}
+
+            return jsonify(response_data), 200
+
         @self.app.route("/call", methods=["POST"])
         def call():
             post_data = request.json
