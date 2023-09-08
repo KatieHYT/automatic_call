@@ -35,6 +35,7 @@ class FlaskCallCenter:
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         self.twilio_client = Client(account_sid, auth_token)
+        self.sid2latlng = {}
 
         @self.app.route("/checkcall", methods=["POST"])
         def checkcall():
@@ -56,13 +57,16 @@ class FlaskCallCenter:
         def call():
             post_data = request.json
             call_to = post_data['call_to']
+            latlng = post_data['latlng']
+
             call = self.twilio_client.calls.create(
                 to=call_to,
                 from_=os.environ['TWILIO_PHONE_NUMBER'],
                 url=f"https://{self.remote_host}/",
             )
             self.save_use_record(call.sid)
-
+            
+            self.sid2latlng[call.sid] = latlng
             response_data = {"message": "POST request to /call was successful"}
             return jsonify(response_data), 200
 
@@ -148,24 +152,39 @@ class FlaskCallCenter:
             time.sleep(0.1)
 
         transcript_list = []
+        data_to_write=""
 
         for i in range(3):
             text_a, audio_key, duration = agent_a.think_what_to_say(transcript_list)
             self.reply(agent_a.phone_operator, audio_key, duration)
             transcript_list.append(text_a)
-             
             time.sleep(0.2)
+            data_to_write += f"[Cradle]\n {text_a} \n\n"
 
             text_b = agent_a.listen_and_transcribe(talker_x)
             transcript_list.append(text_b)
+            data_to_write += f"[Recipient]\n {text_b} \n\n"
             
             thinking_phrase = random.choice(agent_a.thinking_phrase_list)
             audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
             self.reply(agent_a.phone_operator, audio_key, duration)
 
-        audio_key, duration = agent_a.text_to_audiofile("I got it! Thank you! Good Bye!")
+        bye_txt = "I got it! Thank you! Good Bye!"
+        audio_key, duration = agent_a.text_to_audiofile(bye_txt)
+        data_to_write += f"[Cradle]\n {bye_txt}"
         self.reply(agent_a.phone_operator, audio_key, duration)
         self.hang_up(agent_a.phone_operator)
+       
+
+        call_context = agent_a.phone_operator
+        call_resource = call_context.fetch()
+        sid = call_resource.sid
+        latlng = self.sid2latlng[sid]
+        save_path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
+        with open(save_path, 'w') as file:
+            # Write the data to the file
+            file.write(data_to_write)
+        print(f'Data has been written to {save_path}') 
 
     def start(self,):
         server = pywsgi.WSGIServer(
