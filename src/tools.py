@@ -12,6 +12,7 @@ from pydub import AudioSegment
 import time
 import openai
 import sys
+import random
 
 sys.path.append("..")
 from src.text_to_speech import ElevenLabTTS
@@ -54,28 +55,80 @@ class TalkerCradle:
 
     def __init__(
             self,
-            system_prompt: str,
             static_dir: str,
-            init_phrase: Optional[str] = None,
-            thinking_phrase: str = "OK",
-            whisper_model_size: str = "tiny.en"
+            whisper_model_size: str = "base.en"
             ):
         
-        self.system_prompt = system_prompt
-        self.init_phrase = init_phrase
-        self.thinking_phrase = thinking_phrase
-
         # STT: Speech to Text
         self.audio_listener = sr.Recognizer()
         print(f"Loading whisper {whisper_model_size}...")
         self.audio2text_sys = whisper.load_model(whisper_model_size)
         print("\tDone.")
         
-        # TTS: Text to Speech
-        self.text2audio_sys = ElevenLabTTS() 
 
         self.static_dir = static_dir
         self.phone_operator = None
+        
+        voice_list = [
+                'Rachel',
+                'Clyde',
+                'Domi',
+                'Dave',
+                'Fin',
+                'Bella',
+                'Antoni',
+                'Thomas',
+                'Charlie',
+                #'Emily',
+                'Elli',
+                'Callum',
+                'Patrick',
+                'Harry',
+                'Liam',
+                'Dorothy',
+                'Josh',
+                'Arnold',
+                'Charlotte',
+                'Matilda',
+                'Matthew',
+                'James',
+                'Joseph',
+                'Jeremy',
+                'Michael',
+                'Ethan',
+                'Gigi',
+                'Freya',
+                'Grace',
+                'Daniel',
+                'Serena',
+                'Adam',
+                'Nicole',
+                'Jessie',
+                'Ryan',
+                'Sam',
+                'Glinda',
+                'Giovanni',
+                'Mimi',
+                ]
+        self.selected_voice = random.choice(voice_list)
+        print(f"Seleted Voice: {self.selected_voice}")
+        # TTS: Text to Speech
+        self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
+
+        self.thinking_phrase_list = [
+                "ok",
+                "right",
+                "I see",
+                "Got it",
+                "understood",
+                "okay",
+                "well",
+                "Mhmm",
+                "Uh-huh",
+                "alright",
+                ]
+        self.system_prompt=f"You are the one who has a dog, during the phone call, you need to check detailed dog policy of the store you are going to. In each exchange, ask the recipient only one yes/no question."
+        self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
 
     def get_response(self, transcript: List[str]) -> str:
         if len(transcript) > 0:
@@ -128,10 +181,35 @@ class TalkerCradle:
         tmp_path = os.path.join(tmp_dir, "mic.wav")
         # wait for thinking at most 4 seconds
         # wait for the response at most 5 secons
-        audio = self.audio_listener.listen(source)
+         
+        print("\t Adjusting ambient noise...")
+        start_time = time.time()
+        self.audio_listener.adjust_for_ambient_noise(source, duration=2)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Listening...")
+        start_time = time.time()
+        audio = self.audio_listener.listen(source, None, 7)
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Wav to bytes...")
+        start_time = time.time()
         data = io.BytesIO(audio.get_wav_data())
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
+
+        print("\t Audio to disk...")
+        start_time = time.time()
         audio_clip = AudioSegment.from_file(data)
         audio_clip.export(tmp_path, format="wav")
+        end_time = time.time()
+        time_taken = end_time - start_time
+        print("\t\t Time taken:", time_taken, "seconds")
 
         return tmp_path
 
@@ -140,12 +218,7 @@ class TalkerCradle:
         with talker_x as source:
             print("Listening to talker_x...")
             with tempfile.TemporaryDirectory() as tmp_dir:
-                print("\t Audio to disk...")
-                start_time = time.time()
                 tmp_path = self.record_audio_to_disk(source, tmp_dir)
-                end_time = time.time()
-                time_taken = end_time - start_time
-                print("\t\t Time taken:", time_taken, "seconds")
                 
                 print("\t Speech to text...")
                 start_time = time.time()
