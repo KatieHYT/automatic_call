@@ -164,11 +164,11 @@ class FlaskCallCenter:
             self.reply(agent_a.phone_operator, audio_key, duration)
             transcript_list.append(text_a)
             time.sleep(0.2)
-            data_to_write += f"[Cradle]\n {text_a} \n\n"
+            #data_to_write += f"[Cradle]\n {text_a} \n\n"
 
             text_b = agent_a.listen_and_transcribe(talker_x)
             transcript_list.append(text_b)
-            data_to_write += f"[Recipient]\n {text_b} \n\n"
+            #data_to_write += f"[Recipient]\n {text_b} \n\n"
             
             thinking_phrase = random.choice(agent_a.thinking_phrase_list)
             audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
@@ -176,20 +176,20 @@ class FlaskCallCenter:
 
         bye_txt = "I got it! Thank you! Good Bye!"
         audio_key, duration = agent_a.text_to_audiofile(bye_txt)
-        data_to_write += f"[Cradle]\n {bye_txt}"
+        #data_to_write += f"[Cradle]\n {bye_txt}"
         self.reply(agent_a.phone_operator, audio_key, duration)
         self.hang_up(agent_a.phone_operator)
        
 
-        call_context = agent_a.phone_operator
-        call_resource = call_context.fetch()
-        sid = call_resource.sid
-        latlng = self.sid2latlng[sid]
-        save_path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
-        with open(save_path, 'w') as file:
-            # Write the data to the file
-            file.write(data_to_write)
-        print(f'Data has been written to {save_path}') 
+        #call_context = agent_a.phone_operator
+        #call_resource = call_context.fetch()
+        #sid = call_resource.sid
+        #latlng = self.sid2latlng[sid]
+        #save_path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
+        #with open(save_path, 'w') as file:
+        #    # Write the data to the file
+        #    file.write(data_to_write)
+        #print(f'Data has been written to {save_path}') 
 
     def start(self,):
         server = pywsgi.WSGIServer(
