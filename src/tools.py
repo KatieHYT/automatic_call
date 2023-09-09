@@ -79,7 +79,7 @@ class TalkerCradle:
                 'Antoni',
                 'Thomas',
                 'Charlie',
-                'Emily',
+                #'Emily',
                 'Elli',
                 'Callum',
                 'Patrick',
