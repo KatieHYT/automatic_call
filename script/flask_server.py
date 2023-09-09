@@ -44,12 +44,13 @@ class FlaskCallCenter:
             print(f"Checking call history...{latlng}")
             last_list = os.listdir(os.environ["LAST_CALL_DIR"])
             call_conversation=None
-            if latlng+'.txt' in last_list:
-                path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
-                # Open the file in read mode ('r')
-                with open(path, 'r') as file:
-                    # Read the entire file content into a variable
-                    call_conversation = file.read() 
+            if latlng:
+                if latlng+'.txt' in last_list:
+                    path = os.path.join(os.environ["LAST_CALL_DIR"], latlng+'.txt')
+                    # Open the file in read mode ('r')
+                    with open(path, 'r') as file:
+                        # Read the entire file content into a variable
+                        call_conversation = file.read() 
             response_data = {
                     "message": "POST request to /call was successful",
                     "call_conversation": call_conversation}
