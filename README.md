@@ -1,4 +1,11 @@
 # automatic_call
+This is the repo for `automatic call` on our website [**Cradle.wiki**](http://cradle.wiki/).  
+
+For `review summary`, go check repo: https://github.com/KatieHYT/pet_friendly  
+
+For backend and frontend, please refer to: https://github.com/KatieHYT/cradle-django & https://github.com/KatieHYT/cradle-vite
+
+`Together, make the world better! ^__^ ` 
 
 ## Environment setting & Usage
 - install docker
