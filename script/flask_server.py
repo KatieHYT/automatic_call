@@ -78,7 +78,7 @@ class FlaskCallCenter:
 
         @self.app.route("/", methods=["POST"])
         def incoming_voice():
-            print("---> inside imcomving_voice")
+            print("---> inside incomving_voice")
             XML_MEDIA_STREAM = """
             <Response>
               <Start>
@@ -86,7 +86,7 @@ class FlaskCallCenter:
               </Start>
               <Pause length="60"/>
               <Say>
-            	  Hello KT
+                 Hello KT
               </Say>
             </Response>
             """
@@ -156,28 +156,37 @@ class FlaskCallCenter:
         while agent_a.phone_operator is None:
             time.sleep(0.1)
 
-        transcript_list = []
-        data_to_write=""
+        #data_to_write=""
+        text_a, audio_key, duration = agent_a.think_what_to_say(init=True)
+        self.reply(agent_a.phone_operator, audio_key, duration)
+        #data_to_write += f"[Cradle]\n {text_a} \n\n"
 
         for i in range(3):
-            text_a, audio_key, duration = agent_a.think_what_to_say(transcript_list)
-            self.reply(agent_a.phone_operator, audio_key, duration)
-            transcript_list.append(text_a)
             time.sleep(0.2)
-            #data_to_write += f"[Cradle]\n {text_a} \n\n"
-
             text_b = agent_a.listen_and_transcribe(talker_x)
-            transcript_list.append(text_b)
             #data_to_write += f"[Recipient]\n {text_b} \n\n"
             
             thinking_phrase = random.choice(agent_a.thinking_phrase_list)
             audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
             self.reply(agent_a.phone_operator, audio_key, duration)
 
-        bye_txt = "I got it! Thank you! Good Bye!"
+            print(agent_a.messages)
+            text_a, audio_key, duration = agent_a.think_what_to_say(content=text_b)
+            self.reply(agent_a.phone_operator, audio_key, duration)
+
+
+        time.sleep(0.2)
+        text_b = agent_a.listen_and_transcribe(talker_x)
+       
+        print("This is a call conversation, say one last sentence to end the call and you MUST include GOOD BYE in the sentence.")
+        agent_a.system_prompt = "Say good bye to the user, keep it short!"
+        agent_a.messages[0] = {"role": "system", "content": agent_a.system_prompt}
+
+        bye_txt, audio_key, duration = agent_a.think_what_to_say(content=text_b)
+        #bye_txt = "I got it! Thank you! Good Bye!"
         audio_key, duration = agent_a.text_to_audiofile(bye_txt)
         #data_to_write += f"[Cradle]\n {bye_txt}"
-        self.reply(agent_a.phone_operator, audio_key, duration)
+        self.reply(agent_a.phone_operator, audio_key, duration+1)
         self.hang_up(agent_a.phone_operator)
        
 

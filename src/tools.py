@@ -85,7 +85,7 @@ class TalkerCradle:
                 'Patrick',
                 'Harry',
                 'Liam',
-                'Dorothy',
+                #'Dorothy',
                 'Josh',
                 'Arnold',
                 'Charlotte',
@@ -125,26 +125,24 @@ class TalkerCradle:
                 "well",
                 "Mhmm",
                 "Uh-huh",
+                "Hmm",
+                #"woooooo...",
                 "alright",
                 ]
-        self.system_prompt=f"You are the one who has a dog, during the phone call, you need to check detailed dog policy of the store you are going to. In each exchange, ask the recipient only one yes/no question."
+        self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you need to check detailed dog policy from the recipient. Ask yes/no question each time."
         self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
-
-    def get_response(self, transcript: List[str]) -> str:
-        if len(transcript) > 0:
-            messages = [
+        self.messages = [
                 {"role": "system", "content": self.system_prompt},
             ]
-            for i, text in enumerate(reversed(transcript)):
-                messages.insert(1, {"role": "user" if i % 2 == 0 else "assistant", "content": text})
-            output = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                #model="gpt-4",
-                messages=messages,
-            )
-            response = output["choices"][0]["message"]["content"]
-        else:
-            response = self.init_phrase
+
+    def gpt_get_response(self) -> str:
+        output = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            #model="gpt-4",
+            messages=self.messages,
+        )
+        response = output["choices"][0]["message"]["content"]
+
         return response
 
     def get_audio_fn_and_key(self, text: str):
@@ -152,13 +150,30 @@ class TalkerCradle:
         path = os.path.join(self.static_dir, key + ".mp3")
         return key, path
 
-    def think_what_to_say(self, transcript):
-        print("\t ChatGPT processing...")
-        start_time = time.time()
-        text = self.get_response(transcript)
-        end_time = time.time()
-        time_taken = end_time - start_time
-        print("\t\t Time taken:", time_taken, "seconds")
+    def think_what_to_say(self, init=False, content=None):
+        if init:
+            self.messages.append({
+                "role": "assistant",
+                "content": self.init_phrase,
+                })
+            text = self.init_phrase
+            
+        else:
+            self.messages.append({
+                "role": "user",
+                "content": content,
+                })
+            print("\t ChatGPT processing...")
+            start_time = time.time()
+            text = self.gpt_get_response()
+            self.messages.append({
+                "role": "assistant",
+                "content": text,
+                })
+            end_time = time.time()
+            time_taken = end_time - start_time
+            print("\t\t Time taken:", time_taken, "seconds")
+        
         print(f"[Cradle]:\t {text}")
 
         print("\t Text to audio...")
