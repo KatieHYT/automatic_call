@@ -107,10 +107,10 @@ class FlaskCallCenter:
                 try:
                     message = ws.receive()
                 except simple_websocket.ws.ConnectionClosed:
-                    logging.warn("Call media stream connection lost.")
+                    print("Call media stream connection lost.")
                     break
                 if message is None:
-                    logging.warn("Call media stream closed.")
+                    print("Call media stream closed.")
                     break
                 data = json.loads(message)
 
