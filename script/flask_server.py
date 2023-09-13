@@ -184,6 +184,7 @@ class FlaskCallCenter:
 
         bye_txt, audio_key, duration = agent_a.think_what_to_say(content=text_b)
         #bye_txt = "I got it! Thank you! Good Bye!"
+
         audio_key, duration = agent_a.text_to_audiofile(bye_txt)
         #data_to_write += f"[Cradle]\n {bye_txt}"
         self.reply(agent_a.phone_operator, audio_key, duration+1)
