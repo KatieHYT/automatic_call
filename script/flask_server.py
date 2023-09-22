@@ -168,14 +168,25 @@ class FlaskCallCenter:
 
             time.sleep(0.2)
             text_b = agent_a.listen_and_transcribe(talker_x)
+            print(f"pre: {text_b}")
             if text_b in [
                     "you",
+                    " you",
                     "you.",
+                    " you.",
                     "Thank you",
+                    " Thank you",
                     "Thank you.",
+                    " Thank you.",
+                    "",
+                    "Bye.",
+                    " Bye.",
+                    "Bye",
+                    " Bye",
                     ]:
                 text_b = "Hmmmmm..."
-                print(f"Force to : {text_b}")
+            print(f"post: {text_b}")
+            
             #data_to_write += f"[Recipient]\n {text_b} \n\n"
             
             if i !=2:
