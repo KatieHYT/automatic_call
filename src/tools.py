@@ -73,7 +73,7 @@ class TalkerCradle:
                 'Rachel',
                 'Clyde',
                 'Domi',
-                'Dave',
+                'Dave', # good descent man
                 'Fin',
                 'Bella',
                 'Antoni',
@@ -103,7 +103,7 @@ class TalkerCradle:
                 'Serena',
                 'Adam',
                 'Nicole',
-                'Jessie',
+                'Jessie', # good descent man
                 'Ryan',
                 'Sam',
                 'Glinda',
@@ -129,16 +129,22 @@ class TalkerCradle:
                 #"woooooo...",
                 "alright",
                 ]
-        self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you need to check detailed dog policy from the recipient. Ask yes/no question each time."
+        self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you are a customer, you need to check detailed dog policy from the store. Ask yes/no question each time."
         self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
         self.messages = [
                 {"role": "system", "content": self.system_prompt},
             ]
 
+        self.bye_txt_list = [
+            "ok. I see. Have a great day! Bye bye.",
+            "I Got it. Thanks. Bye",
+            "Understood. Thank you. Goodbye!",
+                ]
+
     def gpt_get_response(self) -> str:
         output = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            #model="gpt-4",
+            #model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=self.messages,
         )
         response = output["choices"][0]["message"]["content"]
