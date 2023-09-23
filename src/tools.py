@@ -76,12 +76,13 @@ class TalkerCradle:
         if tts_sys == "elevenlab":
             voice_list = [
                     #'Dave', # good descent man
-                    'Fin',
-                    'Giovanni',
-                    'Patrick',
-                    'Glinda',
-                    'Antoni',
+                    #'Fin',
+                    #'Giovanni',
+                    #'Patrick',
+                    #'Glinda',
+                    #'Antoni',
                     'Sam',
+                    ###,
                     #'Rachel',
                     #'Clyde',
                     #'Domi',
@@ -138,7 +139,7 @@ class TalkerCradle:
                 #"woooooo...",
                 "alright",
                 ]
-        self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you are a customer, you need to check detailed dog policy from the store. Ask yes/no question each time."
+        self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you are a customer, you need to check detailed dog policy from the phone recipient. Ask only one yes/no question each time."
         self.init_phrase=f"Hello! I was wondering... umm... can I bring my dogs to your place?"
         self.messages = [
                 {"role": "system", "content": self.system_prompt},
