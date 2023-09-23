@@ -57,7 +57,9 @@ class TalkerCradle:
     def __init__(
             self,
             static_dir: str,
-            whisper_model_size: str = "base.en"
+            #tts_sys: str = "unreal_speech",
+            tts_sys: str = "elevenlab",
+            whisper_model_size: str = "base.en",
             ):
         
         # STT: Speech to Text
@@ -70,60 +72,65 @@ class TalkerCradle:
         self.static_dir = static_dir
         self.phone_operator = None
         
-        voice_list = [
-                'Rachel',
-                'Clyde',
-                'Domi',
-                'Dave', # good descent man
-                'Fin',
-                'Bella',
-                'Antoni',
-                'Thomas',
-                'Charlie',
-                #'Emily',
-                'Elli',
-                'Callum',
-                'Patrick',
-                'Harry',
-                'Liam',
-                #'Dorothy',
-                'Josh',
-                'Arnold',
-                'Charlotte',
-                'Matilda',
-                'Matthew',
-                'James',
-                'Joseph',
-                'Jeremy',
-                'Michael',
-                'Ethan',
-                'Gigi',
-                'Freya',
-                'Grace',
-                'Daniel',
-                'Serena',
-                'Adam',
-                'Nicole',
-                'Jessie', # good descent man
-                'Ryan',
-                'Sam',
-                'Glinda',
-                'Giovanni',
-                'Mimi',
-                ]
-        self.selected_voice = random.choice(voice_list)
-        print(f"Seleted Voice: {self.selected_voice}")
         # TTS: Text to Speech
-        #self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
-        self.text2audio_sys = UnrealSpeechTTS()
+        if tts_sys == "elevenlab":
+            voice_list = [
+                    #'Dave', # good descent man
+                    'Fin',
+                    'Giovanni',
+                    'Patrick',
+                    'Glinda',
+                    'Antoni',
+                    'Sam',
+                    #'Rachel',
+                    #'Clyde',
+                    #'Domi',
+                    #'Bella',
+                    #'Thomas',
+                    #'Charlie',
+                    ##'Emily',
+                    #'Elli',
+                    #'Callum',
+                    #'Harry',
+                    #'Liam',
+                    ##'Dorothy',
+                    #'Josh',
+                    #'Arnold',
+                    #'Charlotte',
+                    #'Matilda',
+                    #'Matthew',
+                    #'James',
+                    #'Joseph',
+                    #'Jeremy',
+                    #'Michael',
+                    #'Ethan',
+                    #'Gigi',
+                    #'Freya',
+                    #'Grace',
+                    #'Daniel',
+                    #'Serena',
+                    #'Adam',
+                    #'Nicole',
+                    #'Jessie', # good descent man
+                    #'Ryan',
+                    #'Mimi',
+                    ]
+            #self.selected_voice = random.choice(voice_list)
+            self.selected_voice = voice_list[0]
+            print(f"Seleted Voice: {self.selected_voice}")
+            self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
+
+        else:
+            self.text2audio_sys = UnrealSpeechTTS()
+
 
         self.thinking_phrase_list = [
-                "ok",
+                #"ok",
                 "right",
-                "I see",
-                "Got it",
-                "understood",
-                "okay",
+                #"I see",
+                #"Got it",
+                #"understood",
+                #"okay",
                 "well",
                 "Mhmm",
                 "Uh-huh",
@@ -132,7 +139,7 @@ class TalkerCradle:
                 "alright",
                 ]
         self.system_prompt=f"Pretend you are a human who has a dog, during the phone call, you are a customer, you need to check detailed dog policy from the store. Ask yes/no question each time."
-        self.init_phrase=f"Hello, this is {self.selected_voice}. Can I bring my dog to your place?"
+        self.init_phrase=f"Hello! I was wondering... umm... can I bring my dogs to your place?"
         self.messages = [
                 {"role": "system", "content": self.system_prompt},
             ]
