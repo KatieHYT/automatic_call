@@ -103,6 +103,9 @@ class FlaskCallCenter:
             thread = threading.Thread(target=self.conversation, args=(agent_a, talker_x))
             thread.start()
 
+            #thread1 = threading.Thread(target=self.environment, args=(agent_a, talker_x))
+            #thread1.start()
+
             while True:
                 try:
                     message = ws.receive()
@@ -151,6 +154,14 @@ class FlaskCallCenter:
         phone_operator.update(
             twiml=f'<Response><Hangup/></Response>'
         )
+    
+    def environment(self, agent_a, talker_x):
+        while agent_a.phone_operator is None:
+            time.sleep(0.1)
+
+        self.reply(agent_a.phone_operator, "output_quiet", 5)
+        print("output_quiet")
+
 
     def conversation(self, agent_a, talker_x):
         while agent_a.phone_operator is None:
