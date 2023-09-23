@@ -84,7 +84,7 @@ class FlaskCallCenter:
               <Start>
                 <Stream url="wss://{host}/streaming" />
               </Start>
-              <Pause length="60"/>
+              <Pause length="120"/>
               <Say>
                  Hello KT
               </Say>
@@ -158,7 +158,7 @@ class FlaskCallCenter:
 
         for i in range(3):
             if i == 0:
-                #data_to_write=""
+                #data_to_wrie="
                 # play pre-recording audio
                 if agent_a.selected_voice in [
                     'Fin',
@@ -179,8 +179,18 @@ class FlaskCallCenter:
                     self.reply(agent_a.phone_operator, str(int(audio_key)), duration)
                     #data_to_write += f"[Cradle]\n {text_a} \n\n"
             else:
-                text_a, audio_key, duration = agent_a.think_what_to_say(content=text_b)
-                self.reply(agent_a.phone_operator, audio_key, duration)
+                if agent_a.selected_voice in [
+                    'Fin',
+                    #'Giovanni',
+                    #'Patrick',
+                    #'Glinda',
+                    #'Antoni',
+                    #'Sam',
+                    ]:
+                    pass
+                else:
+                    text_a, audio_key, duration = agent_a.think_what_to_say(content=text_b)
+                    self.reply(agent_a.phone_operator, audio_key, duration)
 
             time.sleep(0.2)
             text_b = agent_a.listen_and_transcribe(talker_x)
@@ -208,9 +218,24 @@ class FlaskCallCenter:
             #data_to_write += f"[Recipient]\n {text_b} \n\n"
             
             if i !=2:
-                thinking_phrase = random.choice(agent_a.thinking_phrase_list)
-                audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
-                self.reply(agent_a.phone_operator, audio_key, duration)
+                if agent_a.selected_voice in [
+                    'Fin',
+                    #'Giovanni',
+                    #'Patrick',
+                    #'Glinda',
+                    #'Antoni',
+                    #'Sam',
+                    ]:
+                    _n = random.randint(0, 5) # include boundary
+                    tts_fn = f"{self.static_dir}/{agent_a.selected_voice}_thinking_{_n}.mp3"
+                    print(tts_fn)
+                    duration = agent_a.text2audio_sys.get_duration(tts_fn)
+                    # audio_key do not conclude .mp3
+                    self.reply(agent_a.phone_operator, f"{agent_a.selected_voice}_thinking_{_n}", duration)
+                else:
+                    thinking_phrase = random.choice(agent_a.thinking_phrase_list)
+                    audio_key, duration = agent_a.text_to_audiofile(thinking_phrase)
+                    self.reply(agent_a.phone_operator, audio_key, duration)
        
         #end_prompt = "This is a call conversation, say one last sentence to politely end the call. You must include goodbye in the sentence."
         #print(end_prompt)
