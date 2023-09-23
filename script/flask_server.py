@@ -187,7 +187,11 @@ class FlaskCallCenter:
                     #'Antoni',
                     #'Sam',
                     ]:
-                    pass
+                    tts_fn = f"{self.static_dir}/{agent_a.selected_voice}_q_{i}.mp3"
+                    print(tts_fn)
+                    duration = agent_a.text2audio_sys.get_duration(tts_fn)
+                    # audio_key do not conclude .mp3
+                    self.reply(agent_a.phone_operator, f"{agent_a.selected_voice}_q_{i}", duration)
                 else:
                     text_a, audio_key, duration = agent_a.think_what_to_say(content=text_b)
                     self.reply(agent_a.phone_operator, audio_key, duration)

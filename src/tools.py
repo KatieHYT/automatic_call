@@ -76,12 +76,12 @@ class TalkerCradle:
         if tts_sys == "elevenlab":
             voice_list = [
                     #'Dave', # good descent man
-                    'Fin', # w/
-                    'Giovanni', # w/
-                    'Patrick', # w/
-                    'Glinda', # w/
-                    'Antoni', # w/
-                    'Sam', # w/
+                    'Fin', # w/ open, thinking, q 1 2
+                    'Giovanni', # w/  open
+                    'Patrick', # w/  open
+                    'Glinda', # w/  open
+                    'Antoni', # w/  open
+                    'Sam', # w/  open
                     ###,
                     #'Rachel',
                     #'Clyde',
