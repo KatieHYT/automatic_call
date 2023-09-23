@@ -183,6 +183,8 @@ class FlaskCallCenter:
                     " Bye.",
                     "Bye",
                     " Bye",
+                    "Bye bye.",
+                    " Bye bye.",
                     ]:
                 text_b = "Hmmmmm..."
             print(f"post: {text_b}")

@@ -16,6 +16,7 @@ import random
 
 sys.path.append("..")
 from src.text_to_speech import ElevenLabTTS
+from src.text_to_speech import UnrealSpeechTTS
 
 class QueueStream:
     def __init__(self):
@@ -113,7 +114,8 @@ class TalkerCradle:
         self.selected_voice = random.choice(voice_list)
         print(f"Seleted Voice: {self.selected_voice}")
         # TTS: Text to Speech
-        self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
+        #self.text2audio_sys = ElevenLabTTS(selected_voice=self.selected_voice) 
+        self.text2audio_sys = UnrealSpeechTTS()
 
         self.thinking_phrase_list = [
                 "ok",

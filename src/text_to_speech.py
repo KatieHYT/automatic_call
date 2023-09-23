@@ -40,3 +40,25 @@ class ElevenLabTTS(TTSHelper):
         )
         with open(output_fn, "wb") as out:
             out.write(audio)
+
+class UnrealSpeechTTS(TTSHelper):
+    def __init__(self,):
+        self.api_key = os.environ["UNREAL_SPEECH_API_KEY"] 
+
+    def text_to_mp3(self, text: str, output_fn: str) -> str:
+        response = requests.post(
+          'https://api.v6.unrealspeech.com/stream',
+          headers = {
+            'Authorization' : self.api_key
+          },
+          json = {
+            'Text': f'''{text}''', # Up to 500 characters
+            'VoiceId': 'Scarlett', # Dan, Will, Scarlett, Liv, Amy
+            'Bitrate': '192k', # 320k, 256k, 192k, ...
+            'Speed': '0.3', # -1.0 to 1.0
+            'Pitch': '0.99', # -0.5 to 1.5
+            'Codec': 'libmp3lame', # libmp3lame or pcm_mulaw
+          }
+        )
+        with open(output_fn, "wb") as out:
+            out.write(response.content)
